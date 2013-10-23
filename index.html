@@ -1,0 +1,133 @@
+---
+title: Learning FUSE and Python's C interface
+layout: default
+---
+
+<header>
+  <h1>{{ page.title }}</h1>
+
+  <p>For some time now, I wanted to have a look at Python's interfaces to C libraries. And yesterday I wondered how to implement a filesystem with <a href="http://fuse.sourceforge.net/">FUSE</a>. So, this article is about implementing a user-space file-system with Python.</p>
+
+</header>
+
+<section>
+  <hgroup><h2>Installing FUSE</h2></hgroup>
+
+  I'm using XUbuntu, so the installation instructions will be Debian/Ubuntu specific. And unspectacular:
+
+  <pre class="prettyprint">
+    ~/fuse-test$ sudo apt-get install fuse</pre>
+
+  Now, for some mounts.
+</section>
+
+<section>
+  <hgroup><h2>Using sshfs</h2></hgroup>
+
+  <p><span class="rethorical">What is sshfs?</span> <a href="http://sourceforge.net/p/fuse/sshfs/ci/master/tree/">sshfs</a> is a popular FUSE filesystem that allows you to mount a directory from another host, using ssh as transport.</p>
+
+  <p>
+    First, let's prepare a directory to mount.
+  </p>
+  <pre class="prettyprint">
+    ~/fuse-test$ ssh remotehost
+    murat@remotehost:~$ mkdir test
+    murat@remotehost:~$ touch test/testfile
+    murat@remotehost:~$ exit</pre>
+
+  <p>
+    For <span class="eigenname">sshfs</span> there's a package readily available in the Ubuntu apt mirrors. Also, we need a directory to mount to.
+  </p>
+
+  <pre class="prettyprint">
+    ~/fuse-test$ sudo apt-get install sshfs
+    ~/fuse-test$ mkdir test-local</pre>
+
+  Now, we can mount the remote directory <code>test</code> from remotehost.
+
+  <pre class="prettyprint">
+    ~/fuse-test$ sshfs remotehost:test test-local
+    ~/fuse-test$ cat /etc/mtab | grep remotehost
+    remotehost:test /home/murat/fuse-test/test-local fuse.sshfs rw,nosuid,nodev,user=murat 0 0</pre>
+
+  <code>mtab</code> is looking good. So, what's inside our mount?
+
+  <pre class="prettyprint">
+    ~/fuse-test$ ls test-local
+    testfile</pre>
+
+  Cake for everyone! And unmount, using <a href="http://www.unix.com/man-page/linux/1/FUSERMOUNT/">fusermount</a>.
+
+  <pre class="prettyprint">
+    ~/fuse-test$ fusermount -u temp-fuse/</pre>
+</section>
+
+
+<section>
+  <hgroup><h2>Hello World FS</h2></hgroup>
+  
+  Looking for an easy intermediate step to writing my own file system, I stumbled over the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/">examples</a> that are shipped with <code>FUSE</code>. In particular, there is the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/hello.c">Hello World filesystem</a>. Let's make that one work.
+
+The examples are contained in the development package for libfuse, so we install that.
+
+  <pre class="prettyprint">
+    ~/fuse-test$ sudo apt-get install libfuse-dev
+    ~/fuse-test$ ls /usr/share/doc/libfuse-dev/examples/
+    cusexmp.c  fioclient.c  fselclient.c  fusexmp_fh.c  hello_ll.c  null.c
+    fioc.c     fsel.c       fusexmp.c     hello.c       Makefile
+    ~/fuse-test$ cp -r  /usr/share/doc/libfuse-dev/examples ./
+    ~/fuse-test$ cd examples/</pre>
+
+  Compile it.
+
+  <pre class="prettyprint">
+    ~/fuse-test/examples $ make
+  cc -Wall -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse   fusexmp.c -lfuse   -o fusexmp
+  # more make output here</pre>
+
+  <aside>
+    <h3>undefined reference to `fuse_main_real'</h3>
+  <p>Here you might encounter the following error. If you don't, skip ahead.</p>
+
+  <pre class="prettyprint">
+    cc -Wall -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse    -lfuse    fusexmp.c   -o fusexmp
+    /tmp/ccUDCZVj.o: In function `main':
+    fusexmp.c:(.text+0x677): undefined reference to `fuse_main_real'
+    collect2: error: ld returned 1 exit status
+    make: *** [fusexmp] Error 1</pre>
+
+  <p>The issue has been <a href="http://sourceforge.net/mailarchive/message.php?msg_id=28448125">documented</a> on the FUSE mailing list. In Ubuntu 10.10, the linking behaviour of GCC has been changed, now <a href="https://lists.ubuntu.com/archives/ubuntu-devel-announce/2010-October/000772.html">enabling the option <code>--as-needed</code> by default</a>.</p>
+
+  <p>For the compiling/linking step above, this is important because <code>libfuse</code> is referenced <i>before</i> the C file. When the symbols of the library, most notably <code>fuse_main_real</code> are checked for references, they are dismissed, because <code>fusexmp.c</code> has not been considered yet.</p>
+
+  <p>When you have a look at the Makefile, you'll notice that there are no explicit rules for compiling and linking the C files. The <a href="http://www.gnu.org/software/make/manual/make.html#Catalogue-of-Rules">implicit rules</a> to compile and link C files are the culprit here. Of course, they <a href="http://www.gnu.org/software/make/manual/make.html#Canceling-Rules">can be overriden</a>, for example like so:</p>
+  
+  <pre class="prettyprint">
+%: %.c
+	$(CC) $(CFLAGS) $@.c $(LDFLAGS) -o $@</pre>
+
+  <p>Append this to the makefile and you're good to go. Run <code>make</code> again and your example files should now be compiled successfully.</p>
+  </aside>
+
+  We can now go ahead and mount the filesystem.
+
+  <pre class="prettyprint">
+    ~/examples $ ./hello ../test-local/
+    cd ../test-local/
+    ~/fuse-test/test-local$ ls
+    hello
+    ~/fuse-test/test-local$ cat hello 
+    Hello World!
+    ~/fuse-test/test-local$ cd ..
+    ~/fuse-test$ fusermount -u test-local/</pre>
+
+  Now, what about a filesystem to call our own?
+</section>
+
+<footer>
+  <h2> Give credit, where it's due</h2>
+  <p>Thanks go to Ethan Schoonover for his <a href="http://ethanschoonover.com/solarized">Solarized colors</a>. For <a href="http://code.google.com/p/google-code-prettify/">prettify</a>, I used the matching color scheme <a href="http://demo.stanleyhlng.com/prettify-js/?id=solarized-light">Solarized-light</a>. And obviously, thanks a lot to <a href="https://github.com/">GitHub</a> for hosting this page and their service in general.</p>
+
+  <h2>License</h2>
+  This article may be used under the terms of the <a href="http://creativecommons.org/licenses/by/3.0/deed.en_US">CC BY 3.0</a>.
+</footer>
