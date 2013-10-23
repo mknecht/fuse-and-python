@@ -1,0 +1,134 @@
+/** Solarized color theme from http://ethanschoonover.com/solarized */
+/* light is default mode, so pair with general html definition */
+/* line 33, ../_sass/site.scss */
+html, .light {
+  background-color: #fdf6e3;
+  color: #657b83;
+}
+/* line 23, ../_sass/site.scss */
+html *, .light * {
+  color: #657b83;
+}
+/* line 24, ../_sass/site.scss */
+html h1, html h2, html h3, html h4, html h5, html h6, .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+  color: #586e75;
+  border-color: #657b83;
+}
+/* line 25, ../_sass/site.scss */
+html a, html a:active, html a:visited, .light a, .light a:active, .light a:visited {
+  color: #586e75;
+}
+/* line 28, ../_sass/site.scss */
+html a, html a:active, html a:visited, html code.url, .light a, .light a:active, .light a:visited, .light code.url {
+  color: #268bd2;
+}
+/* line 29, ../_sass/site.scss */
+html h1, html h2, html h3, html h4, html h5, html h6, .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+  color: #b58900;
+}
+
+/* line 38, ../_sass/site.scss */
+.dark {
+  background-color: #002b36;
+  color: #839496;
+}
+/* line 23, ../_sass/site.scss */
+.dark * {
+  color: #839496;
+}
+/* line 24, ../_sass/site.scss */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #93a1a1;
+  border-color: #839496;
+}
+/* line 25, ../_sass/site.scss */
+.dark a, .dark a:active, .dark a:visited {
+  color: #93a1a1;
+}
+
+/* line 40, ../_sass/site.scss */
+html * {
+  color-profile: sRGB;
+  rendering-intent: auto;
+}
+
+/** 
+
+/** My modifications. */
+/* line 49, ../_sass/site.scss */
+body {
+  font-family: Garamond, Georgia, serif;
+  font-size: 1.2em;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+/* line 56, ../_sass/site.scss */
+div.main {
+  margin-left: 20%;
+  margin-right: 20%;
+}
+
+/* line 61, ../_sass/site.scss */
+section {
+  border-style: solid none;
+}
+
+/* line 65, ../_sass/site.scss */
+h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 1em 0em;
+}
+
+/* line 71, ../_sass/site.scss */
+div.highlight pre {
+  margin-left: 3em;
+}
+
+/* line 76, ../_sass/site.scss */
+.rethorical {
+  font-style: italic;
+  font-weight: bold;
+}
+
+/* line 81, ../_sass/site.scss */
+.eigenname {
+  font-style: italic;
+}
+
+/* line 85, ../_sass/site.scss */
+code {
+  font-family: Courier New;
+}
+
+/* line 89, ../_sass/site.scss */
+aside {
+  background-color: #eee8d5;
+  border-style: solid;
+  border-color: #b58900;
+  border-width: 1px;
+  padding: .5em;
+  margin: 2em 4em;
+}
+
+/* line 99, ../_sass/site.scss */
+aside pre.prettyprint {
+  background-color: #eee8d5;
+  border-color: #eee8d5;
+}
+
+/** Mod to have sections in their own bubbles */
+/* line 107, ../_sass/site.scss */
+html, body, .light {
+  background-color: #eee8d5;
+}
+
+/* line 111, ../_sass/site.scss */
+header, section, footer {
+  border-radius: 30px;
+  background-color: #fdf6e3;
+  border: none;
+  padding: 2em;
+  margin: 2em 0em;
+}

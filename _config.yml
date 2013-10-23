@@ -5,6 +5,6 @@ sass:
     # "deploy_style:" is used only for building the site
     # (ie: not using the --watch flag)
 
-    compile_in_place: true   # true|false
+    compile_in_place: false   # true|false
     # If true, compiles sass directly into your jekyll source directory
     # As well as your destination directory
