@@ -31,7 +31,12 @@ $border: $base2;
 }
 @mixin accentize($heading_accent, $link_accent) {
     a, a:active, a:visited, code.url { color: $link_accent; }
-    h1,h2,h3,h4,h5,h6 {color:$heading_accent}
+    h1,h2,h3,h4,h5,h6 {
+	color:$heading_accent;
+	a, a:visited {
+	    color:$heading_accent;
+	}
+    }
 }
 
 /* light is default mode, so pair with general html definition */
@@ -66,9 +71,12 @@ section {
 }
 
 h2 {
-    font-size: 1.5em;
     font-weight: bold;
     margin: 0em 0em 1em 0em;
+}
+
+h2 a {
+    text-decoration: none;
 }
 
 h3 {
@@ -171,3 +179,8 @@ ol.linenums li {
 li.L0, li.L1, li.L2, li.L3,
 li.L5, li.L6, li.L7, li.L8
 { list-style-type: decimal !important }
+
+span.todo, a.todo {
+    color: #F00;
+    font-style: italic;
+}

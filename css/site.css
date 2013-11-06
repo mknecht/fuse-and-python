@@ -1,6 +1,6 @@
 /** Solarized color theme from http://ethanschoonover.com/solarized */
 /* light is default mode, so pair with general html definition */
-/* line 38, ../_sass/site.scss */
+/* line 43, ../_sass/site.scss */
 html, .light {
   background-color: #fdf6e3;
   color: #657b83;
@@ -26,8 +26,12 @@ html a, html a:active, html a:visited, html code.url, .light a, .light a:active,
 html h1, html h2, html h3, html h4, html h5, html h6, .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
   color: #b58900;
 }
+/* line 36, ../_sass/site.scss */
+html h1 a, html h1 a:visited, html h2 a, html h2 a:visited, html h3 a, html h3 a:visited, html h4 a, html h4 a:visited, html h5 a, html h5 a:visited, html h6 a, html h6 a:visited, .light h1 a, .light h1 a:visited, .light h2 a, .light h2 a:visited, .light h3 a, .light h3 a:visited, .light h4 a, .light h4 a:visited, .light h5 a, .light h5 a:visited, .light h6 a, .light h6 a:visited {
+  color: #b58900;
+}
 
-/* line 43, ../_sass/site.scss */
+/* line 48, ../_sass/site.scss */
 html * {
   color-profile: sRGB;
   rendering-intent: auto;
@@ -36,7 +40,7 @@ html * {
 /** 
 
 /** My modifications. */
-/* line 52, ../_sass/site.scss */
+/* line 57, ../_sass/site.scss */
 body {
   font-family: Garamond, Georgia, serif;
   font-size: 1em;
@@ -44,58 +48,62 @@ body {
   margin-right: 1em;
 }
 
-/* line 59, ../_sass/site.scss */
+/* line 64, ../_sass/site.scss */
 div.main {
   margin-left: 20%;
   margin-right: 20%;
 }
 
-/* line 64, ../_sass/site.scss */
+/* line 69, ../_sass/site.scss */
 section {
   border-style: solid none;
 }
 
-/* line 68, ../_sass/site.scss */
+/* line 73, ../_sass/site.scss */
 h2 {
-  font-size: 1.5em;
   font-weight: bold;
   margin: 0em 0em 1em 0em;
 }
 
-/* line 74, ../_sass/site.scss */
+/* line 78, ../_sass/site.scss */
+h2 a {
+  text-decoration: none;
+}
+
+/* line 82, ../_sass/site.scss */
 h3 {
   font-size: 1em;
   font-weight: bold;
   margin: 0em 0em 1em 0em;
 }
 
-/* line 80, ../_sass/site.scss */
+/* line 88, ../_sass/site.scss */
 .rethorical {
   font-style: italic;
   font-weight: bold;
 }
 
-/* line 85, ../_sass/site.scss */
+/* line 93, ../_sass/site.scss */
 .eigenname {
   font-style: italic;
 }
 
-/* line 89, ../_sass/site.scss */
+/* line 97, ../_sass/site.scss */
 code {
   font-family: Courier New;
 }
 
-/* line 93, ../_sass/site.scss */
+/* line 101, ../_sass/site.scss */
 ul.code-explanation {
   list-style-type: none;
 }
 
-/* line 97, ../_sass/site.scss */
+/* line 105, ../_sass/site.scss */
 emph {
   font-weight: bold;
 }
 
-/* line 101, ../_sass/site.scss */
+/* line 109, ../_sass/site.scss */
 .points-to-aside {
   background-color: #eee8d5;
   border-left: solid 2em #93a1a1;
@@ -104,18 +112,18 @@ emph {
   margin-right: -2em;
 }
 
-/* line 109, ../_sass/site.scss */
+/* line 117, ../_sass/site.scss */
 span.eigenname {
   font-family: Courier New;
 }
 
 /** Mod to have sections in their own bubbles */
-/* line 115, ../_sass/site.scss */
+/* line 123, ../_sass/site.scss */
 html, body, .light {
   background-color: #fdf6e3;
 }
 
-/* line 119, ../_sass/site.scss */
+/* line 127, ../_sass/site.scss */
 header, section, footer, aside {
   border-radius: 60px;
   border: solid 2px #eee8d5;
@@ -125,7 +133,7 @@ header, section, footer, aside {
 }
 
 /** prettyprint using prettifyjs */
-/* line 130, ../_sass/site.scss */
+/* line 138, ../_sass/site.scss */
 pre.prettyprint {
   background-color: #eee8d5;
   padding: 1em 2em;
@@ -136,7 +144,7 @@ pre.prettyprint {
 }
 
 /* SPAN elements with the classes below are added by prettyprint. */
-/* line 145, ../_sass/site.scss */
+/* line 153, ../_sass/site.scss */
 pre {
   /* plain text */
   /* string content */
@@ -151,70 +159,76 @@ pre {
   /* a declaration; a variable name */
   /* a function name */
 }
-/* line 146, ../_sass/site.scss */
+/* line 154, ../_sass/site.scss */
 pre .pln {
   color: #657b83;
 }
-/* line 147, ../_sass/site.scss */
+/* line 155, ../_sass/site.scss */
 pre .str {
   color: #268bd2;
 }
-/* line 148, ../_sass/site.scss */
+/* line 156, ../_sass/site.scss */
 pre .kwd {
   color: #b58900;
 }
-/* line 149, ../_sass/site.scss */
+/* line 157, ../_sass/site.scss */
 pre .com {
   color: #859900;
 }
-/* line 150, ../_sass/site.scss */
+/* line 158, ../_sass/site.scss */
 pre .typ {
   color: #dc322f;
 }
-/* line 151, ../_sass/site.scss */
+/* line 159, ../_sass/site.scss */
 pre .lit {
   color: #268bd2;
 }
-/* line 153, ../_sass/site.scss */
+/* line 161, ../_sass/site.scss */
 pre .pun, pre .opn, pre .clo {
   color: #657b83;
 }
-/* line 154, ../_sass/site.scss */
+/* line 162, ../_sass/site.scss */
 pre .tag {
   color: #dc322f;
 }
-/* line 155, ../_sass/site.scss */
+/* line 163, ../_sass/site.scss */
 pre .atn {
   color: #dc322f;
 }
-/* line 156, ../_sass/site.scss */
+/* line 164, ../_sass/site.scss */
 pre .atv {
   color: #268bd2;
 }
-/* line 157, ../_sass/site.scss */
+/* line 165, ../_sass/site.scss */
 pre .dec, pre .var {
   color: #dc322f;
 }
-/* line 158, ../_sass/site.scss */
+/* line 166, ../_sass/site.scss */
 pre .fun {
   color: #b58900;
 }
 
 /* Specify class=linenums on a pre to get line numbering */
-/* line 162, ../_sass/site.scss */
+/* line 170, ../_sass/site.scss */
 ol.linenums {
   color: #4c666c;
   margin: 0 0 0 40px;
 }
 
-/* line 166, ../_sass/site.scss */
+/* line 174, ../_sass/site.scss */
 ol.linenums li {
   line-height: 18px;
   padding-left: 12px;
 }
 
-/* line 173, ../_sass/site.scss */
+/* line 181, ../_sass/site.scss */
 li.L0, li.L1, li.L2, li.L3,
 li.L5, li.L6, li.L7, li.L8 {
   list-style-type: decimal !important;
+}
+
+/* line 183, ../_sass/site.scss */
+span.todo, a.todo {
+  color: #F00;
+  font-style: italic;
 }

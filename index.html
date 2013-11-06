@@ -145,7 +145,7 @@ sshfs: '<span style="eigenname">sshfs</span>'
     ~/fuse-test$ cat mountpoint/hello 
     Hello World!</pre>
 
-  <p>The most minimal Filesystem I could come up with, is the following <a href="">NopFS</a>.</p>
+  <p>The most minimal Filesystem I could come up with, is the following <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/nopfs.py">NopFS</a>.</p>
 
   <pre class="prettyprint lang-python linenums">
 import fuse
@@ -184,51 +184,47 @@ if __name__ == '__main__':
 ~/fuse-test$ cd mountpoint && ls
 ls: reading directory .: Function not implemented</pre>
     
-  <p>So, let's make <code>ls</code> work.</p>
-
-  <p>Now we can make <code>ls</code> work. For that, we need to implement the following functions: <a href="">opendir()</a>, the readdir</p>
+  <p>So, let's make <code>ls</code> work. For that, the following functions are necessary at least: <a class="todo">getattr(path)</a> and <a class="todo">readdir(path, offset)</a>. <code>readdir</code> provides the list of files in the root directory, and <code>getattr</code> gives information on each file, so <code>ls</code> knows, whether it is a directory, a file, who owns it, and so on.</p>
     
-  <p class="points-to-aside">How do you know what to implement? Find out in the <a href="#python-fuse-systemcalls ">aside about system calls</a>.</p>
+  <p class="points-to-aside">By the way, how do you know what to implement? Find out in this <a href="#fuse-python-system-calls">note about system calls</a>.</p>
 
-  <pre class="prettyprint lang-python">
+  <p>Let us add one file <code>some_file</code> and one directory <code>some_dir</code> to the root directory. The following <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/lsfs.py">LsFS</a> filesystem does just that.</p>
+
+  <pre class="prettyprint lang-python linenums">
 class LsFS(fuse.Fuse):
-    def __init__(self):
-        self.dir_class = DirectoryMapping
-        self.file_class = FileMapping
-        super(LsFS, self).__init__(dash_s_do='setsingle')  # Avoid the aforementioned problems with dir_class
 
-class DirectoryMapping(object):
-    def __init__(self, path):
-        self.path = path
+    def getattr(self, path):
+        st = fuse.Stat()
+        if path[1:] == "some_dir" or path == '/':
+            st.st_mode = stat.S_IFDIR | 0755
+            st.st_nlink = 3 if path == '/' else 2
+        elif path[1:] == "some_file":
+            st.st_mode = stat.S_IFREG | 0644
+            st.st_nlink = 1
+        else:
+            return -errno.ENOENT
+        return st
 
-class FileMapping(object):
-    def __init__(self, path):
-        self.path = path</pre>
+    def readdir(self, path, offset):
+        if path == "/":
+            for name in [".", "..", "some_file", "some_dir"]:
+                yield fuse.Direntry(name)
+        else:
+           raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))</pre>
 
     <p>For a {{ page.fp }} implementation, there are two design choices to make:</p>
 
   <p>After mounting, an ls reveals:</p>
 
-  <pre class="prettyprint lang-bash">~/fuse-test$ cd mountpoint
-~/fuse-test/mountpoint$ ls
-ls: reading directory .: Function not implemented
-  </pre>
+  <pre class="prettyprint lang-bash">~/fuse-test$ ls -l mountpoint/
+total 0
+drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
+-rw-r--r-- 1 root root 0 Jan  1  1970 some_file</pre>
 
+  <p class="points-to-aside">By the way, if you ever run into an <a href="#fuse-python-invalid-argument">Invalid argument</a> error, read this note first.</p>
 
-  <pre class="prettyprint lang-python">
-class PyFS(Fuse):
-    # ...
-    def getattr(self, path):
-        st = Stat()
-        if path == '/':
-            st.st_mode = stat.S_IFDIR | 0755
-            st.st_nlink = 2
-        else:
-            return -errno.ENOENT
-        return st
-  </pre>
 </section>
-
+ 
 <aside>
   <hgroup><h2><span class="text">by the way:</span> Design Choices</h2></hgroup>
 
@@ -276,11 +272,13 @@ RuntimeError: fuse.fuse_python_api not defined.
 
 <aside>
   <hgroup><h2><span class="text">by the way:</span> Bug in fuse-python 0.2.1 Freezes Process</h2></hgroup>
-  <p>Using open_dir or dir_class in multi-threaded mode (without -s) <a href="http://sourceforge.net/mailarchive/message.php?msg_id=29284482">freezes the FUSE process</a>. The bug report says it's <a href="http://bugs.python.org/issue7736">fuse-python fault</a>, and it was <a href="http://sourceforge.net/p/fuse/fuse-python/ci/602557a6ead19c2e58ac020e3057eda2251a6ace/">fixed</a> in mid 2012. But there has not been a release since, so there is no release for it yet. You have to grab the sources and install it yourself, if you want the fix.
+  <p>Using open_dir or dir_class in multi-threaded mode (without -s) <a href="http://sourceforge.net/mailarchive/message.php?msg_id=29284482">freezes the FUSE process</a>. The bug report says it's <a href="http://bugs.python.org/issue7736">fuse-python fault</a>, and it was <a href="http://sourceforge.net/p/fuse/fuse-python/ci/602557a6ead19c2e58ac020e3057eda2251a6ace/">fixed</a> in mid 2012. But there has not been a release since, so there is no updated package for it, either. You have to grab the sources and install it yourself, if you want the fix.
 </aside>
 
 <aside>
-  <hgroup><h2><span class="text">by the way:</span> Tracing System Calls</h2></hgroup>
+  <hgroup>
+    <h2><a name="fuse-python-system-calls" href="#fuse-python-system-calls"><span class="text">by the way:</span> Tracing System Calls</a></h2>
+  </hgroup>
   Apparently, FUSE is aware that the nop filesystem does not support anything yet. What is needed to make <code>ls</code> work? Tracing the system calls of an <code>ls</code> on an empty directory, brings us a step further:
 
   <pre class="prettyprint lang-bash">~/fuse-test$ mkdir testdir
@@ -325,6 +323,27 @@ total 0
   </pre>
 
 </aside>
+
+<aside>
+  <hgroup>
+    <h2><a name="fuse-python-invalid-argument"><span class="text">by the way:</span> Invalid argument</a></h2>
+  </hgroup>
+
+  <p>In respect to misspelled names, {{ page.fp }} does a bad job at exposing the root cause of the problem. As an example, let us assume a name in <code>LsFS</code> had been mistyped: <code>S_IFRE<i>F</i></code> instead of <code>S_IFREG</code>:</p>
+
+  <pre class="prettyprint lang-python">st.st_mode = stat.S_IFREF | 0644</pre>
+
+  <p>Then, when running <code>ls</code>, we'd get this:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ ls -l mountpoint/
+ls: cannot access mountpoint/some_file: Invalid argument
+total 0
+drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
+?????????? ? ?    ?    ?            ? some_file</pre>
+
+  <p>Contrary to what the reader of that error message might think, the API method's signature was correctly handling the given arguments. In this case, you need good logging to understand the actual error.</p>
+</aside>
+
 
 <footer>
   <h2> Give credit, where it's due</h2>
