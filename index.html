@@ -1,12 +1,19 @@
 ---
 title: Learning FUSE and Python's C interface
 layout: default
+# See the following post how to escape bash output in liquid.
+# http://stackoverflow.com/questions/3426182/how-to-escape-liquid-template-tags
+fp: '<span style="eigenname">fuse-python</span>'
+fuse: '<span style="eigenname">FUSE</span>'
+sshfs: '<span style="eigenname">sshfs</span>'
 ---
 
 <header>
   <h1>{{ page.title }}</h1>
 
-  <p>For some time now, I wanted to have a look at Python's interfaces to C libraries. And yesterday I wondered how to implement a filesystem with <a href="http://fuse.sourceforge.net/">FUSE</a>. So, this article is about implementing a user-space file-system with Python.</p>
+  <p>For some time now, I wanted to have a look at Python's interfaces to C libraries. And yesterday I wondered how to implement a filesystem with <a href="http://fuse.sourceforge.net/">FUSE</a>. So, in this article we will explore implementing a user-space file-system with Python.</p>
+
+  <p>WORK IN PROGRESS</p>
 
 </header>
 
@@ -24,41 +31,41 @@ layout: default
 <section>
   <hgroup><h2>Using sshfs</h2></hgroup>
 
-  <p><span class="rethorical">What is sshfs?</span> <a href="http://sourceforge.net/p/fuse/sshfs/ci/master/tree/">sshfs</a> is a popular FUSE filesystem that allows you to mount a directory from another host, using ssh as transport.</p>
+  <p><span class="rethorical">What is {{ page.sshfs }}?</span> <a href="http://sourceforge.net/p/fuse/sshfs/ci/master/tree/">sshfs</a> is a popular {{ page.fuse }} filesystem that allows you to mount a directory from another host, using ssh as transport.</p>
 
   <p>
     First, let's prepare a directory to mount.
   </p>
-  <pre class="prettyprint">
+  <pre class="prettyprint lang-bash">
     ~/fuse-test$ ssh remotehost
     murat@remotehost:~$ mkdir test
     murat@remotehost:~$ touch test/testfile
     murat@remotehost:~$ exit</pre>
 
   <p>
-    For <span class="eigenname">sshfs</span> there's a package readily available in the Ubuntu apt mirrors. Also, we need a directory to mount to.
+    For {{ page.sshfs }} there's a package readily available in the Ubuntu apt mirrors. Also, we need a directory to mount to.
   </p>
 
   <pre class="prettyprint">
     ~/fuse-test$ sudo apt-get install sshfs
-    ~/fuse-test$ mkdir test-local</pre>
+    ~/fuse-test$ mkdir mountpoint</pre>
 
   Now, we can mount the remote directory <code>test</code> from remotehost.
 
   <pre class="prettyprint">
-    ~/fuse-test$ sshfs remotehost:test test-local
+    ~/fuse-test$ sshfs remotehost:test mountpoint
     ~/fuse-test$ cat /etc/mtab | grep remotehost
-    remotehost:test /home/murat/fuse-test/test-local fuse.sshfs rw,nosuid,nodev,user=murat 0 0</pre>
+    remotehost:test /home/murat/fuse-test/mountpoint fuse.sshfs rw,nosuid,nodev,user=murat 0 0</pre>
 
   <code>mtab</code> is looking good. So, what's inside our mount?
 
   <pre class="prettyprint">
-    ~/fuse-test$ ls test-local
+    ~/fuse-test$ ls mountpoint
     testfile</pre>
 
   Cake for everyone! And unmount, using <a href="http://www.unix.com/man-page/linux/1/FUSERMOUNT/">fusermount</a>.
 
-  <pre class="prettyprint">
+  <pre class="prettyprint lang-bash">
     ~/fuse-test$ fusermount -u temp-fuse/</pre>
 </section>
 
@@ -66,9 +73,9 @@ layout: default
 <section>
   <hgroup><h2>Hello World FS</h2></hgroup>
   
-  Looking for an easy intermediate step to writing my own file system, I stumbled over the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/">examples</a> that are shipped with <code>FUSE</code>. In particular, there is the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/hello.c">Hello World filesystem</a>. Let's make that one work.
+  <p>Looking for an easy intermediate step to writing my own file system, I stumbled over the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/">examples</a> that are shipped with {{ page.fuse }}. In particular, there is the <a href="http://sourceforge.net/p/fuse/fuse/ci/master/tree/example/hello.c">Hello World filesystem</a>. Let's make that one work.</p>
 
-The examples are contained in the development package for libfuse, so we install that.
+  <p>The examples are contained in the development package for <code>libfuse</code>, so we install that.</p>
 
   <pre class="prettyprint">
     ~/fuse-test$ sudo apt-get install libfuse-dev
@@ -78,51 +85,246 @@ The examples are contained in the development package for libfuse, so we install
     ~/fuse-test$ cp -r  /usr/share/doc/libfuse-dev/examples ./
     ~/fuse-test$ cd examples/</pre>
 
-  Compile it.
+  <p>Compile it.</p>
 
   <pre class="prettyprint">
     ~/fuse-test/examples $ make
   cc -Wall -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse   fusexmp.c -lfuse   -o fusexmp
   # more make output here</pre>
 
-  <aside>
-    <h3>undefined reference to `fuse_main_real'</h3>
-  <p>Here you might encounter the following error. If you don't, skip ahead.</p>
+  We can now go ahead and mount the filesystem.
 
   <pre class="prettyprint">
+    ~/examples $ ./hello ../mountpoint/
+    cd ../mountpoint/
+    ~/fuse-test/mountpoint$ ls
+    hello
+    ~/fuse-test/mountpoint$ cat hello 
+    Hello World!
+    ~/fuse-test/mountpoint$ cd ..
+    ~/fuse-test$ fusermount -u mountpoint</pre>
+
+  Let's have a look at the available Python bindings.
+</section>
+
+
+<aside>
+  <hgroup><h2><span class="text">by the way:</span> undefined reference to `fuse_main_real'</h2></hgroup>
+  <p>Here you might encounter the following error. If you don't, skip ahead.</p>
+
+  <pre class="prettyprint lang-bash">
     cc -Wall -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse    -lfuse    fusexmp.c   -o fusexmp
     /tmp/ccUDCZVj.o: In function `main':
     fusexmp.c:(.text+0x677): undefined reference to `fuse_main_real'
     collect2: error: ld returned 1 exit status
     make: *** [fusexmp] Error 1</pre>
 
-  <p>The issue has been <a href="http://sourceforge.net/mailarchive/message.php?msg_id=28448125">documented</a> on the FUSE mailing list. In Ubuntu 10.10, the linking behaviour of GCC has been changed, now <a href="https://lists.ubuntu.com/archives/ubuntu-devel-announce/2010-October/000772.html">enabling the option <code>--as-needed</code> by default</a>.</p>
+  <p>The issue has been <a href="http://sourceforge.net/mailarchive/message.php?msg_id=28448125">documented</a> on the {{ page.fuse }} mailing list. In Ubuntu 10.10, the linking behaviour of GCC has been changed, now <a href="https://lists.ubuntu.com/archives/ubuntu-devel-announce/2010-October/000772.html">enabling the option <code>--as-needed</code> by default</a>.</p>
 
   <p>For the compiling/linking step above, this is important because <code>libfuse</code> is referenced <i>before</i> the C file. When the symbols of the library, most notably <code>fuse_main_real</code> are checked for references, they are dismissed, because <code>fusexmp.c</code> has not been considered yet.</p>
 
   <p>When you have a look at the Makefile, you'll notice that there are no explicit rules for compiling and linking the C files. The <a href="http://www.gnu.org/software/make/manual/make.html#Catalogue-of-Rules">implicit rules</a> to compile and link C files are the culprit here. Of course, they <a href="http://www.gnu.org/software/make/manual/make.html#Canceling-Rules">can be overriden</a>, for example like so:</p>
   
   <pre class="prettyprint">
-%: %.c
-	$(CC) $(CFLAGS) $@.c $(LDFLAGS) -o $@</pre>
+    %: %.c
+    $(CC) $(CFLAGS) $@.c $(LDFLAGS) -o $@</pre>
 
   <p>Append this to the makefile and you're good to go. Run <code>make</code> again and your example files should now be compiled successfully.</p>
-  </aside>
+</aside>
 
-  We can now go ahead and mount the filesystem.
 
-  <pre class="prettyprint">
-    ~/examples $ ./hello ../test-local/
-    cd ../test-local/
-    ~/fuse-test/test-local$ ls
-    hello
-    ~/fuse-test/test-local$ cat hello 
-    Hello World!
-    ~/fuse-test/test-local$ cd ..
-    ~/fuse-test$ fusermount -u test-local/</pre>
+<section>
+  <h2>fuse-python</h2>
+  <p>For starters, I'll have a look at the <a href="http://sourceforge.net/p/fuse/fuse-python/ci/master/tree/">official Python bindings</a>.
+  Probably a piece of work: <a href="https://pypi.python.org/pypi/fuse-python">it's ancient</a>. Installation is trivial, though, because it's available as a package in Ubuntu: <code>apt-get install python-fuse</code>. (Yes, the name is correct. The package name follows Debian's <a href="http://www.debian.org/doc/packaging-manuals/python-policy/ch-module_packages.html#s-package_names">naming conventions for python packages</a>.)</p>
 
-  Now, what about a filesystem to call our own?
+  <p>After installing, its examples can be found in <code>/usr/share/doc/python-fuse/examples</code>: namely <code>hello.py</code> and <code>xmp.py</code>. They work out of the box:</p>
+
+  <pre class="prettyprint lang-bash linenums">
+    ~/fuse-test$ python /usr/share/doc/python-fuse/examples/hello.py mountpoint/
+    ~/fuse-test$ cat mountpoint/hello 
+    Hello World!</pre>
+
+  <p>The most minimal Filesystem I could come up with, is the following <a href="">NopFS</a>.</p>
+
+  <pre class="prettyprint lang-python linenums">
+import fuse
+
+fuse.fuse_python_api = (0, 2)
+
+
+class NopFS(fuse.Fuse):
+    pass
+
+
+def main():
+    server = NopFS()
+    server.parse()
+    server.main()
+
+if __name__ == '__main__':
+    main()</pre>
+
+  <p>It shows nicely, how the API works:</p>
+
+  <ul class="code-explanation">
+    <li><emph>3:</emph> Declare the targeted version of the {{ page.fuse }} API,</li>
+    <li><emph>6:</emph> Subclass <code>fuse.Fuse</code>,</li>
+    <li><emph>12:</emph> Call the classes <code>main()</code> function when the module is executed.</li>
+  </ul>
+
+  <p>It can already be mounted like the previous examples:</p>
+
+  <pre class="prettyprint lang-bash">
+~/fuse-test$ python nopfs.py mountpoint</pre>
+
+  <p>When doing an <code>ls</code>, {{ page.fuse }} notices that this functionality has not been implemented yet:</p>
+
+  <pre class="prettyprint lang-bash">
+~/fuse-test$ cd mountpoint && ls
+ls: reading directory .: Function not implemented</pre>
+    
+  <p>So, let's make <code>ls</code> work.</p>
+
+  <p>Now we can make <code>ls</code> work. For that, we need to implement the following functions: <a href="">opendir()</a>, the readdir</p>
+    
+  <p class="points-to-aside">How do you know what to implement? Find out in the <a href="#python-fuse-systemcalls ">aside about system calls</a>.</p>
+
+  <pre class="prettyprint lang-python">
+class LsFS(fuse.Fuse):
+    def __init__(self):
+        self.dir_class = DirectoryMapping
+        self.file_class = FileMapping
+        super(LsFS, self).__init__(dash_s_do='setsingle')  # Avoid the aforementioned problems with dir_class
+
+class DirectoryMapping(object):
+    def __init__(self, path):
+        self.path = path
+
+class FileMapping(object):
+    def __init__(self, path):
+        self.path = path</pre>
+
+    <p>For a {{ page.fp }} implementation, there are two design choices to make:</p>
+
+  <p>After mounting, an ls reveals:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ cd mountpoint
+~/fuse-test/mountpoint$ ls
+ls: reading directory .: Function not implemented
+  </pre>
+
+
+  <pre class="prettyprint lang-python">
+class PyFS(Fuse):
+    # ...
+    def getattr(self, path):
+        st = Stat()
+        if path == '/':
+            st.st_mode = stat.S_IFDIR | 0755
+            st.st_nlink = 2
+        else:
+            return -errno.ENOENT
+        return st
+  </pre>
 </section>
+
+<aside>
+  <hgroup><h2><span class="text">by the way:</span> Design Choices</h2></hgroup>
+
+  <div>
+    <h3>Class structure: monolithic vs. composite</h3>
+    <p>Using the monolithic approach, all functionality is provided by overriding methods directly in the subclass. This results in a more direct mapping of the {{ page.fuse }} API.</p>
+    <p>Using the other approach, functionality to access files and directories is encapsulated in dedicated classes. For each directory or file to be accessed, an object of this class is created. Aside from grouping semantically related code pieces, the object oriented approach allows to store Since this also uses the constructor for “opening”, this  </p>
+    <p>For example, the <code>opendir()</code> function will be implemented directly. Access to files and directories can </p>
+  </div>
+
+  <div>
+    <h3>Error handling: errno vs. exceptions</h3>
+    <p>The second choice is about how errors are propagated to {{ page.fuse }}. In principle, this is possible by either <a href="http://docs.python.org/2/library/errno.html">errno</a> codes or by raising exceptions that contain the codes. In the latter case, the <code>fuse.ErrnoWrapper</code>, a facade which is always added to API functions, will catch the exception and return the errno code.</p>
+
+      <p>When choosing the composite approach for the class design, the exception approach should be preferred, because in the constructor of the access classes you cannot return an errno code.</p>
+  </div>
+
+</aside>
+
+<aside>
+  <hgroup><h2><span class="text">by the way:</span> fuse_python_api</h2></hgroup>
+  fuse.fuse_python_api = (0, 2)
+
+http://sourceforge.net/p/fuse/fuse-python/ci/master/tree/README.new_fusepy_api
+
+  <pre>
+RuntimeError: fuse.fuse_python_api not defined.
+
+! Please define fuse.fuse_python_api internally (eg.
+! 
+! (1)  fuse.fuse_python_api = (0, 2)
+! 
+! ) or in the enviroment (eg. 
+! 
+! (2)  FUSE_PYTHON_API=0.1
+! 
+! ).
+!
+! If you are actually developing a filesystem, probably (1) is the way to go.
+! If you are using a filesystem written before 2007 Q2, probably (2) is what
+! you want."
+  </pre>
+
+</aside>
+
+<aside>
+  <hgroup><h2><span class="text">by the way:</span> Bug in fuse-python 0.2.1 Freezes Process</h2></hgroup>
+  <p>Using open_dir or dir_class in multi-threaded mode (without -s) <a href="http://sourceforge.net/mailarchive/message.php?msg_id=29284482">freezes the FUSE process</a>. The bug report says it's <a href="http://bugs.python.org/issue7736">fuse-python fault</a>, and it was <a href="http://sourceforge.net/p/fuse/fuse-python/ci/602557a6ead19c2e58ac020e3057eda2251a6ace/">fixed</a> in mid 2012. But there has not been a release since, so there is no release for it yet. You have to grab the sources and install it yourself, if you want the fix.
+</aside>
+
+<aside>
+  <hgroup><h2><span class="text">by the way:</span> Tracing System Calls</h2></hgroup>
+  Apparently, FUSE is aware that the nop filesystem does not support anything yet. What is needed to make <code>ls</code> work? Tracing the system calls of an <code>ls</code> on an empty directory, brings us a step further:
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ mkdir testdir
+~/fuse-test$ strace -v -e file -e \!process ls testdir 2>&1 1>/dev/null
+...
+stat("testdir", {st_dev=makedev(252, 1), st_ino=5643452, st_mode=S_IFDIR|0775, st_nlink=2, st_uid=1000, st_gid=1000, st_blksize=4096, st_blocks=8, st_size=4096, st_atime=2013/10/31-22:42:45, st_mtime=2013/10/31-22:42:45, st_ctime=2013/10/31-22:42:45}) = 0
+openat(AT_FDCWD, "testdir", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 3
+getdents(3, {{ "{{" }}d_ino=5643452, d_off=6816274797489594284, d_reclen=24, d_name="."} {d_ino=5636714, d_off=9223372036854775807, d_reclen=24, d_name=".."{{ }} }}, 32768) = 48
+getdents(3, {}, 32768)                  = 0
+close(3)                                = 0
+...
+  </pre>
+
+  <p>First, the root dir is analyzed with <code>stat</code>. Then, a file handle to the directory is opened with <code>openat</code>, it's two entries <code>.</code> and <code>..</code> are retrieved with <code>getdents</code>. Finally, the handle is released with <code>close</code>.</p>
+
+  <p><span style="eigenname>FUSE</span>'s <a href="http://fuse.sourceforge.net/doxygen/structfuse__operations.html">API documentation</a> gives some hints to what these system calls will be mapped to: <code>stat</code> requires a <a href="http://fuse.sourceforge.net/doxygen/structfuse__operations.html#a7a4c5d8eaf7179d819618c0cf3f73724"><code>getattr</code></a>, </p>
+
+
+  <pre class="prettyprint lang-python">
+class DirectoryMapping(object):
+    def __init__(self, path):
+        self.path = path
+
+    def readdir(self, offset):
+        if self.path == "/":
+            for name in [".", "..", "hello"]:
+                yield fuse.Direntry(name)
+        else:
+            raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
+  </pre>
+
+  <pre class="prettyprint lang-bash">
+~/fuse-test$ ls mountpoint
+ls: cannot access mountpoint: Function not implemented
+~/fuse-test$ (cd mountpoint && ls)
+ls: cannot access hello: Function not implemented
+hello
+~/fuse-test$ (cd mountpoint && ls -l)
+ls: cannot access hello: Function not implemented
+total 0
+?????????? ? ? ? ?            ? hello
+  </pre>
+
+</aside>
 
 <footer>
   <h2> Give credit, where it's due</h2>

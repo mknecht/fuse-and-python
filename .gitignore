@@ -1,2 +1,6 @@
 *~
 _site
+js/scrolling.js
+.sass-cache
+*/.sass-cache/
+Gemfile.lock

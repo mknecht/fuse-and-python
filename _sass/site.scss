@@ -16,6 +16,11 @@ $violet:    #6c71c4;
 $blue:      #268bd2;
 $cyan:      #2aa198;
 $green:     #859900;
+
+$text: $base00;
+$bg: $base3;
+$border: $base2;
+
 @mixin rebase($rebase03,$rebase02,$rebase01,$rebase00,$rebase0,$rebase1,$rebase2,$rebase3) 
 {
     background-color:$rebase03;
@@ -35,8 +40,6 @@ html, .light {
     @include accentize($yellow, $blue);
 }
 
-.dark  { @include rebase($base03,$base02,$base01,$base00,$base0,$base1,$base2,$base3)}
-
 html * {
     color-profile: sRGB;
     rendering-intent: auto;
@@ -48,7 +51,7 @@ html * {
 
 body {
     font-family: Garamond, Georgia, serif;
-    font-size: 1.2em;
+    font-size: 1em;
     margin-left: 1em;
     margin-right: 1em;
 }
@@ -65,12 +68,13 @@ section {
 h2 {
     font-size: 1.5em;
     font-weight: bold;
-    margin: 1em 0em;
+    margin: 0em 0em 1em 0em;
 }
 
-div.highlight pre {
-
-    margin-left: 3em;
+h3 {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 0em 0em 1em 0em;
 }
 
 .rethorical {
@@ -86,33 +90,84 @@ code {
     font-family: Courier New;
 }
 
-aside {
-    background-color: #eee8d5;
-    border-style: solid;
-    border-color: $yellow;
-    border-width: 1px;
-
-    padding: .5em;
-    margin: 2em 4em;
+ul.code-explanation {
+    list-style-type: none;
 }
 
-aside pre.prettyprint {
-    background-color: $base2;
-    border-color: $base2;
+emph {
+    font-weight: bold;
 }
 
+.points-to-aside {
+    background-color: $border;
+    border-left: solid 2em $base1;
+    padding: 1em 2em;
+    margin-left: -2em;
+    margin-right: -2em;
+}
+
+span.eigenname {
+    font-family: Courier New;
+}
 
 /** Mod to have sections in their own bubbles */
 
 html, body, .light {
-    background-color: $base2;
+    background-color: $bg;
 }
 
-header, section, footer {
-    border-radius: 30px;
-    background-color: $base3;
-    border: none;
-    padding: 2em;
+header, section, footer, aside {
+    border-radius: 60px;
+    border: solid 2px $border;
+    background-color: $bg;
     margin: 2em 0em;
+    padding: 2em;
 }
 
+
+/** prettyprint using prettifyjs */
+
+pre.prettyprint {
+    background-color: $border;
+    padding: 1em 2em;
+    margin-left: -2em;
+    margin-right: -2em;
+    /* in case it's the last element, so we don't cut the round corner. */
+    margin-bottom: 1em;
+}
+
+$pty-fun: $yellow;
+$pty-name: $red;
+$pty-value: $blue;
+$pty-comment: $green;
+
+/* SPAN elements with the classes below are added by prettyprint. */
+pre {
+    .pln { color: $text }  /* plain text */
+    .str { color: $pty-value }  /* string content */
+    .kwd { color: $pty-fun }  /* a keyword */
+    .com { color: $pty-comment }  /* a comment */
+    .typ { color: $pty-name }  /* a type name */
+    .lit { color: $pty-value }  /* a literal value */
+    /* punctuation, lisp open bracket, lisp close bracket */
+    .pun, .opn, .clo { color: $text }
+    .tag { color: $pty-name }  /* a markup tag name */
+    .atn { color: $pty-name }  /* a markup attribute name */
+    .atv { color: $pty-value }  /* a markup attribute value */
+    .dec, .var { color: $pty-name }  /* a declaration; a variable name */
+    .fun { color: $pty-fun }  /* a function name */
+}
+
+/* Specify class=linenums on a pre to get line numbering */
+ol.linenums {
+  color: #4c666c;
+  margin: 0 0 0 40px; }
+
+ol.linenums li {
+  line-height: 18px;
+  padding-left: 12px;
+}
+
+li.L0, li.L1, li.L2, li.L3,
+li.L5, li.L6, li.L7, li.L8
+{ list-style-type: decimal !important }
