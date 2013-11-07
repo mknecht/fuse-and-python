@@ -4,7 +4,6 @@
 # License: MIT
 #
 import errno
-import os
 import stat
 
 import fuse
@@ -13,15 +12,13 @@ fuse.fuse_python_api = (0, 2)
 
 
 class LsFS(fuse.Fuse):
-
     def getattr(self, path):
         st = fuse.Stat()
+        st.st_nlink = 1
         if path[1:] == "some_dir" or path == '/':
             st.st_mode = stat.S_IFDIR | 0755
-            st.st_nlink = 3 if path == '/' else 2
         elif path[1:] == "some_file":
             st.st_mode = stat.S_IFREG | 0644
-            st.st_nlink = 1
         else:
             return -errno.ENOENT
         return st
@@ -30,8 +27,6 @@ class LsFS(fuse.Fuse):
         if path == "/":
             for name in [".", "..", "some_file", "some_dir"]:
                 yield fuse.Direntry(name)
-        else:
-            raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
 
 
 def main():
