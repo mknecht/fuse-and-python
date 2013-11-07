@@ -170,7 +170,7 @@ if __name__ == '__main__':
   <ul class="code-explanation">
     <li><emph>3:</emph> Declare the targeted version of the {{ page.fuse }} API,</li>
     <li><emph>6:</emph> Subclass <code>fuse.Fuse</code>,</li>
-    <li><emph>12:</emph> Call the classes <code>main()</code> function when the module is executed.</li>
+    <li><emph>13:</emph> Call the classes <code>main()</code> function when the module is executed.</li>
   </ul>
 
   <p>It can already be mounted like the previous examples:</p>
@@ -184,23 +184,21 @@ if __name__ == '__main__':
 ~/fuse-test$ cd mountpoint && ls
 ls: reading directory .: Function not implemented</pre>
     
-  <p>So, let's make <code>ls</code> work. For that, the following functions are necessary at least: <a class="todo">getattr(path)</a> and <a class="todo">readdir(path, offset)</a>. <code>readdir</code> provides the list of files in the root directory, and <code>getattr</code> gives information on each file, so <code>ls</code> knows, whether it is a directory, a file, who owns it, and so on.</p>
+  <p>So, let's make <code>ls</code> work. For that, the following functions are necessary at least: <a class="todo">getattr(path)</a> and <a class="todo">readdir(path, offset)</a>. <code>readdir</code> provides the list of files in the root directory, and <code>getattr</code> gives information on each file, so <code>ls</code> knows whether a path identifies a directory or a file, who owns it, and so on.</p>
     
-  <p class="points-to-aside">By the way, how do you know what to implement? Find out in this <a href="#fuse-python-system-calls">note about system calls</a>.</p>
+  <p class="points-to-aside">By the way, how do you know what methods to implement? Find out in this <a href="#fuse-python-system-calls">note about system calls</a>.</p>
 
   <p>Let us add one file <code>some_file</code> and one directory <code>some_dir</code> to the root directory. The following <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/lsfs.py">LsFS</a> filesystem does just that.</p>
 
   <pre class="prettyprint lang-python linenums">
 class LsFS(fuse.Fuse):
-
     def getattr(self, path):
         st = fuse.Stat()
+        st.st_nlink = 1
         if path[1:] == "some_dir" or path == '/':
             st.st_mode = stat.S_IFDIR | 0755
-            st.st_nlink = 3 if path == '/' else 2
         elif path[1:] == "some_file":
             st.st_mode = stat.S_IFREG | 0644
-            st.st_nlink = 1
         else:
             return -errno.ENOENT
         return st
@@ -208,11 +206,16 @@ class LsFS(fuse.Fuse):
     def readdir(self, path, offset):
         if path == "/":
             for name in [".", "..", "some_file", "some_dir"]:
-                yield fuse.Direntry(name)
-        else:
-           raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))</pre>
+                yield fuse.Direntry(name)</pre>
 
-    <p>For a {{ page.fp }} implementation, there are two design choices to make:</p>
+  <ul class="code-explanation">
+    <li><emph>3:</emph> <code>getattr</code>'s job is to return a <code>fuse.Stat</code> object filled with information about <code>path</code>. It contains information about type, access rights and times, and so on.</li>
+    <li><emph>4:</emph> <code>fuse.Stat</code> is initialized with “undefined” values. Usually, that boils down to a zero, which is harmless in most cases. Two fields need to be set: <code>st_nlink</code> (number of hardlinks to that inode) and <code>st_mode</code> (type, access rights, …). Here, the hardlinks are initialized wrongly, as for example directories should have at least two hardlinks. But I just want to make the code work. </li>
+    <li><emph>5:</emph> {{ page.fuse }} always provides the absolute path relative to the mount root. That is why the first character, usually a '/' on UNIX, is removed.</li>
+    <li><emph>6-8:</emph> The Stat structure is filled according to the path, making <code>some_dir</code> globally readable and searchable directory, and so on.</li>
+    <li><emph>10:</emph> For anything other, the error code for “unknown file” is returned.</li>
+    <li><emph>13:</emph> <code>readdir</code> should return a generator producing an <code>DirEntry</code> object for each inode in the directory. Note there is another, more low-level mode of operation which uses the <code>offset</code> parameter. More about it in the <span class="todo">API docs</span>.</li>
+  </ul>
 
   <p>After mounting, an ls reveals:</p>
 
@@ -221,8 +224,14 @@ total 0
 drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
 -rw-r--r-- 1 root root 0 Jan  1  1970 some_file</pre>
 
-  <p class="points-to-aside">By the way, if you ever run into an <a href="#fuse-python-invalid-argument">Invalid argument</a> error, read this note first.</p>
+  <p>Yay!</p>
 
+  <p>A “few” things were omitted. At least: Making <code>some_dir</code>'s contents actually readable. Setting other stat-related fields. Checking access rights.</p>
+
+  <p class="points-to-aside">By the way, ever run into an <code>Invalid argument</code> error? Weirdly enough, this need not have anything to do with invalid arguments. Read <a href="#fuse-python-invalid-argument">the note on this error</a> to learn more.</p>
+  
+  <p class="points-to-aside">For a {{ page.fp }} implementation, there are <a href="#fuse-python-design-choices">two design choices</a> to be considered.</p>
+  <p>:</p>
 </section>
  
 <aside>
