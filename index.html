@@ -231,11 +231,83 @@ drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
   <p class="points-to-aside">By the way, ever run into an <code>Invalid argument</code> error? Weirdly enough, this need not have anything to do with invalid arguments. Read <a href="#fuse-python-invalid-argument">the note on this error</a> to learn more.</p>
   
   <p class="points-to-aside">For a {{ page.fp }} implementation, there are <a href="#fuse-python-design-choices">two design choices</a> to be considered.</p>
-  <p>:</p>
+
+  <p>The methods above, we can use to implement the Python filesystem. I will be using the OO approach. Since it's just too much details code, I'll only show the most important snippets here. Refer to the <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/pyfs.py">source code of PyFS</a> for the complete implementation. By default, I am importing and making available three modules under <code>/lib</code>:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ ls mountpoint/lib/
+errno  json  os  sys</pre>
+
+  <p>The next obvious feature is reading: For that we implement the <code>read</code> method on the file access class.</p>
+
+  <pre class="prettyprint lang-python">class FileMapping(object):
+    def read(self, size, offset):
+        return self._read_from_string(
+            self.get_text(),
+            size,
+            offset,
+        )</pre>
+
+  <p><code>get_text()</code> retrieves the string representation of the path. For <code>/lib/os/pathsep</code>, it resolves the name and returns <code>:</code>. <code>_read_from_string</code> returns the proper range of the text, taking <code>size</code> and <code>offset</code> into account. (Obviously, this is inefficient. Don't care, though.)</p>
+
+  <p>Something very nice that we can do already, is making the files representing the functions executable. For that to work, <code>getattr</code> needs to set the executable bit in the <code>st_mode</code> field and <code>read</code> needs to return an executable file that will call the function and print it's result. Implemented, this looks like so:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ mountpoint/lib/os/path/join /this/is/a "path/to" be/joined
+/this/is/a/path/to/be/joined</pre>
+
+  <p>The next thing, we can do is add modules to <code>/lib</code> by appending to the pseudo-file <code>/run/modules</code>. We could use an executable to be called like so: <code>/bin/import re</code>. That is nicely readable, but means we're only doing reading again, (reading the script that will parse the input and add it to the filesystem), which is boring. Also, since this executable would be run as a new process, we'd need inter-process communication, which is annoying. So, what about this: <code>echo "re" >> /run/modules</code>? For this to work, we need <code>getattr</code> to make this file writable, and the <code>write()</code> method needs to process the module name that will be written to it:</p>
+
+  <pre class="prettyprint lang-python">    def write(self, buf, offset):
+        if not self.append and offset != 0:
+            raise IOError(errno.EPERM)
+        addlib(buf.strip())
+        return len(buf)</pre>
+
+  <p>First, we make sure that a module is either added to the existing ones, or replaces all of them. Then, the <code>addlib()</code> function adds the module with the given name to the list of modules accessible under <code>/lib</code>. Put together:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ ls mountpoint/lib/
+json  os  sys
+~/fuse-test$ echo re >> mountpoint/run/modules 
+~/fuse-test$ ls mountpoint/lib/
+json  os  re  sys
+~/fuse-test$ mountpoint/lib/re/match ".*(l+).*" hello
+<_sre.SRE_Match object at 0x7ff2a94b44e0>
+  </pre>
+
+  <p class="points-to-aside">By the way, you might run into “Invalid Argument” trouble here. The good news: You might be innocent; it's a bug! Have a look at <a href="#fuse-python-error-opening-file-writing">this note regarding write errors</a>.</p>
+
+  <p>What about <code>echo "re" > /run/modules</code>? This would clear the list of modules first, only leaving the <code>re</code> module mounted afterwards. To support truncating a file, we would need to implement the <code>truncate()</code> on the filesystem object, and <code>ftruncate()</code> on the file class. Since the wanted echo command will use the former, here it is:</p>
+
+  <pre class="prettyprint lang-python">    def truncate(self, path, len):
+        if path != "/run/modules":
+            raise IOError(-errno.EPERM)
+        if len != 0:
+            raise IOError(-errno.EPERM)
+        clear_modules_list()</pre>
+
+  <p>The first check makes sure, we only clear the module list when called upon the special file. The second check ensure we only do complete truncations. Put together:</p>
+
+  <pre class="prettyprint lang-bash">~/fuse-test$ ls mountpoint/lib/
+json  os  sys
+~/fuse-test$ echo re > mountpoint/run/modules 
+~/fuse-test$ ls mountpoint/lib/
+re</pre>
+
+  <p>Concluding thoughts:</p>
+
+  <ul>
+    <li>Not maintained.</li>
+    <li>Code-wise, it's a mess.</li>
+    <li>API-wise, too. (Either make it pythonic, or don't. Whatever you do, do it right.)</li>
+    <li>Documentation: None. Examples only.</li>
+    <li>Buggy in release.</li>
+  </ul>
+
+  <p>So, that's it for fuse-python. The <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython">complete source code of all examples</a> is available on Github.</p>
+
 </section>
  
 <aside>
-  <hgroup><h2><span class="text">by the way:</span> Design Choices</h2></hgroup>
+  <hgroup><h2><a name="fuse-python-design-choices" href="#fuse-python-design-choices"><span class="text">by the way:</span> Design Choices</a></h2></hgroup>
 
   <div>
     <h3>Class structure: monolithic vs. composite</h3>
@@ -254,7 +326,7 @@ drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
 </aside>
 
 <aside>
-  <hgroup><h2><span class="text">by the way:</span> fuse_python_api</h2></hgroup>
+  <hgroup><h2><a href="#fuse-python-fuse_python_api" name="fuse-python-fuse_python_api"><span class="text">by the way:</span> fuse_python_api</a></h2></hgroup>
   fuse.fuse_python_api = (0, 2)
 
 http://sourceforge.net/p/fuse/fuse-python/ci/master/tree/README.new_fusepy_api
@@ -281,7 +353,9 @@ RuntimeError: fuse.fuse_python_api not defined.
 
 <aside>
   <hgroup><h2><span class="text">by the way:</span> Bug in fuse-python 0.2.1 Freezes Process</h2></hgroup>
-  <p>Using open_dir or dir_class in multi-threaded mode (without -s) <a href="http://sourceforge.net/mailarchive/message.php?msg_id=29284482">freezes the FUSE process</a>. The bug report says it's <a href="http://bugs.python.org/issue7736">fuse-python fault</a>, and it was <a href="http://sourceforge.net/p/fuse/fuse-python/ci/602557a6ead19c2e58ac020e3057eda2251a6ace/">fixed</a> in mid 2012. But there has not been a release since, so there is no updated package for it, either. You have to grab the sources and install it yourself, if you want the fix.
+  <p>Using open_dir or dir_class in multi-threaded mode (without -s) <a href="http://sourceforge.net/mailarchive/message.php?msg_id=29284482">freezes the FUSE process</a>. The bug report says it's <a href="http://bugs.python.org/issue7736">fuse-python fault</a>, and it was <a href="http://sourceforge.net/p/fuse/fuse-python/ci/602557a6ead19c2e58ac020e3057eda2251a6ace/">fixed</a> in mid 2012 by Môshe van der Sterre.</p>
+
+  <p>There has not been a release since, so there is no updated package for it, either. You have to grab the sources and install it yourself, if you want the fix. Otherwise, run your filesystem with <code>-s</code>.
 </aside>
 
 <aside>
@@ -335,7 +409,7 @@ total 0
 
 <aside>
   <hgroup>
-    <h2><a name="fuse-python-invalid-argument"><span class="text">by the way:</span> Invalid argument</a></h2>
+    <h2><a name="fuse-python-invalid-argument" href="#fuse-python-invalid-argument"><span class="text">by the way:</span> Invalid argument</a></h2>
   </hgroup>
 
   <p>In respect to misspelled names, {{ page.fp }} does a bad job at exposing the root cause of the problem. As an example, let us assume a name in <code>LsFS</code> had been mistyped: <code>S_IFRE<i>F</i></code> instead of <code>S_IFREG</code>:</p>
@@ -354,9 +428,45 @@ drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
 </aside>
 
 
+<aside>
+  <hgroup>
+    <h2><a name="fuse-python-error-opening-file-writing" href="#fuse-python-error-opening-file-writing"><span class="text">by the way:</span> Error on opening a file for writing</a></h2>
+  </hgroup>
+  
+  <p>When implementing the module import mechanism, I stumbled over the following behavior in the xmp:</p>
+  
+  <pre class="prettyprint lang-bash">~/fuse-test$ echo "world" >> mountpoint/hello
+~/fuse-test$ echo "world" > mountpoint/hello
+bash: mountpoint/hello: Invalid argument</pre>
+
+  <p>So, I could successfully write a file, but not truncate it. In the PyFS, I could do neither.</p>
+
+  <p>When stracing that, it turns out that opening the file (with truncate flag) did not work.</p>
+
+  <pre class="prettyprint lang-python">open("mountpoint/hello", O_WRONLY|O_CREAT|O_TRUNC, 0666) = -1 EINVAL (Invalid argument)</pre>
+
+  <p>This rang a bell. <code>open()</code> is one of the functions getting special treatment in <code>Fuse.lowwrap()</code>. There are three kinds of return values possible: an <code>errno</code> integer, a <code>FuseFileInfo</code> object and an instance of the <a href="#fuse-python-design-choices">file-handling class</a>. The latter being my case.</p>
+  <p>In the C function <code>open_func()</code>, I found that the attributes <code style="font-weight:bold">keep_cache</code> and <code style="font-weight:bold">direct_io</code> are accessed on the return value.</p>
+  <p>This, in turn, reminded me about a bugfix, I've seen: Turns out that Môshe van der Sterre fixed this one, too. (Thanks, there!) Commit <a href="http://sourceforge.net/p/fuse/fuse-python/ci/7e29c2aeedf908732121559a31ba615b4c058fab/">7e29c2</a> makes sure that checking for those attributes does not leave an exception state open (when the attributes don't exist).</p>
+
+  <p>Long story short: To fix this, either get the HEAD version of fuse-python, or make sure that the attributes can be resolved on your filehandler object. Like so:</p>
+
+  <pre class="prettyprint lang-python">class FileWrapper(object):
+    def __init__(self, path, flags, *mode):
+        # ...
+        self.keep_cache = False
+        self.direct_io = False</pre>
+
+  <p>Obviously, you should set the attributes depending on what your filesystem supports.</p>
+
+
+</aside>
+  
+
+
 <footer>
   <h2> Give credit, where it's due</h2>
-  <p>Thanks go to Ethan Schoonover for his <a href="http://ethanschoonover.com/solarized">Solarized colors</a>. For <a href="http://code.google.com/p/google-code-prettify/">prettify</a>, I used the matching color scheme <a href="http://demo.stanleyhlng.com/prettify-js/?id=solarized-light">Solarized-light</a>. And obviously, thanks a lot to <a href="https://github.com/">GitHub</a> for hosting this page and their service in general.</p>
+  <p>Thanks go to Ethan Schoonover for his <a href="http://ethanschoonover.com/solarized">Solarized colors</a>. And obviously, thanks a lot to <a href="https://github.com/">GitHub</a> for hosting this page and their service in general.</p>
 
   <h2>License</h2>
   This article may be used under the terms of the <a href="http://creativecommons.org/licenses/by/3.0/deed.en_US">CC BY 3.0</a>.
