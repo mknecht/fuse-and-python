@@ -34,3 +34,5 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+phuse/fusepython/logfs.py
+phuse/fusepython/logfunctional.py
