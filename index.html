@@ -6,6 +6,7 @@ layout: default
 fp: '<span style="eigenname">fuse-python</span>'
 fuse: '<span style="eigenname">FUSE</span>'
 sshfs: '<span style="eigenname">sshfs</span>'
+fusepy: '<span style="eigenname">fusepy</span>'
 ---
 
 <header>
@@ -134,9 +135,13 @@ sshfs: '<span style="eigenname">sshfs</span>'
 
 
 <section>
-  <h2>fuse-python</h2>
-  <p>For starters, I'll have a look at the <a href="http://sourceforge.net/p/fuse/fuse-python/ci/master/tree/">official Python bindings</a>.
-  Probably a piece of work: <a href="https://pypi.python.org/pypi/fuse-python">it's ancient</a>. Installation is trivial, though, because it's available as a package in Ubuntu: <code>apt-get install python-fuse</code>. (Yes, the name is correct. The package name follows Debian's <a href="http://www.debian.org/doc/packaging-manuals/python-policy/ch-module_packages.html#s-package_names">naming conventions for python packages</a>.)</p>
+  <h2><a href="#fuse-python" name="fuse-python">fuse-python</a></h2>
+
+  <p>For starters, I'll have a look at the <a href="http://sourceforge.net/p/fuse/fuse-python/ci/master/tree/">official Python bindings</a>.</p>
+
+  <h3>Installation</h3>
+
+  <p>Probably a piece of work: <a href="https://pypi.python.org/pypi/fuse-python">it's ancient</a>. Installation is trivial, though, because it's available as a package in Ubuntu: <code>apt-get install python-fuse</code>. (Yes, the name is correct. The package name follows Debian's <a href="http://www.debian.org/doc/packaging-manuals/python-policy/ch-module_packages.html#s-package_names">naming conventions for python packages</a>.)</p>
 
   <p>After installing, its examples can be found in <code>/usr/share/doc/python-fuse/examples</code>: namely <code>hello.py</code> and <code>xmp.py</code>. They work out of the box:</p>
 
@@ -144,6 +149,8 @@ sshfs: '<span style="eigenname">sshfs</span>'
     ~/fuse-test$ python /usr/share/doc/python-fuse/examples/hello.py mountpoint/
     ~/fuse-test$ cat mountpoint/hello 
     Hello World!</pre>
+
+  <h3>NopFS: The Bare Minimum</h3>
 
   <p>The most minimal Filesystem I could come up with, is the following <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/nopfs.py">NopFS</a>.</p>
 
@@ -184,6 +191,8 @@ if __name__ == '__main__':
 ~/fuse-test$ cd mountpoint && ls
 ls: reading directory .: Function not implemented</pre>
     
+  <h3>LsFS: Directory Contents</h3>
+
   <p>So, let's make <code>ls</code> work. For that, the following functions are necessary at least: <a class="todo">getattr(path)</a> and <a class="todo">readdir(path, offset)</a>. <code>readdir</code> provides the list of files in the root directory, and <code>getattr</code> gives information on each file, so <code>ls</code> knows whether a path identifies a directory or a file, who owns it, and so on.</p>
     
   <p class="points-to-aside">By the way, how do you know what methods to implement? Find out in this <a href="#fuse-python-system-calls">note about system calls</a>.</p>
@@ -232,7 +241,9 @@ drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
   
   <p class="points-to-aside">For a {{ page.fp }} implementation, there are <a href="#fuse-python-design-choices">two design choices</a> to be considered.</p>
 
-  <p>The methods above, we can use to implement the Python filesystem. I will be using the OO approach. Since it's just too much details code, I'll only show the most important snippets here. Refer to the <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/pyfs.py">source code of PyFS</a> for the complete implementation. By default, I am importing and making available three modules under <code>/lib</code>:</p>
+  <h3>PyFS: Reading and Writing Files</h3>
+
+  <p>The methods above we can use to implement the Python filesystem. I will be using the OO approach. Since it's just too much details code, I'll only show the most important snippets here. Refer to the <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/pyfs.py">source code of PyFS</a> for the complete implementation. By default, I am importing and making available three modules under <code>/lib</code>:</p>
 
   <pre class="prettyprint lang-bash">~/fuse-test$ ls mountpoint/lib/
 errno  json  os  sys</pre>
@@ -292,7 +303,7 @@ json  os  sys
 ~/fuse-test$ ls mountpoint/lib/
 re</pre>
 
-  <p>Concluding thoughts:</p>
+  <h3>Concluding thoughts</h3>
 
   <ul>
     <li>Not maintained.</li>
@@ -302,7 +313,7 @@ re</pre>
     <li>Buggy in release.</li>
   </ul>
 
-  <p>So, that's it for fuse-python. The <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython">complete source code of all examples</a> is available on Github.</p>
+  <p>So, that's it for {{ page.fp }}. The <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython">complete source code of all examples</a> is available on Github.</p>
 
 </section>
  
@@ -463,6 +474,32 @@ bash: mountpoint/hello: Invalid argument</pre>
 </aside>
   
 
+<section>
+  <h2><a href="#fusepy" name="fusepy">fusepy</a></h2>
+  <p><a href="https://github.com/terencehonles/fusepy">{{ page.fusepy }}</a> provides ctypes based Python bindings to {{ page.fuse }}.</p>
+
+  <h3>Installation</h3>
+  <p>Can't be installed in a virtualenv. That means: Must install system-wide and can't tst fuse-python and fusepy at the same time, since both use "fuse" as module name. Meh.</p>
+
+  <pre class="prettyprint">Traceback (most recent call last):
+  File "/home/murat/ws/fuse-and-python/phuse/fusepython/pyfs.py", line 238, in <module>
+    class PyFS(fuse.Fuse):
+AttributeError: 'module' object has no attribute 'Fuse'</module>
+  </pre>
+
+
+
+  <h3>NopFS: The bare minimum</h3>
+
+  <pre class="prettyprint lang-bash">fusermount: failed to open /etc/fuse.conf: Permission denied</pre>
+
+  <p>The <a href="http://blog.tordeu.com/?p=50">fuse group is missing</a>. Add it and log out and back in.</p>
+
+  <h3>LsFS: Directory Contents</h3>
+  <h3>PyFS: Reading and Writing Files</h3>
+  <h3>Concluding thoughts</h3>
+
+</section>
 
 <footer>
   <h2> Give credit, where it's due</h2>
