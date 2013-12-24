@@ -491,15 +491,42 @@ AttributeError: 'module' object has no attribute 'Fuse'</module>
 
   <h3>NopFS: The bare minimum</h3>
 
-  <pre class="prettyprint lang-bash">fusermount: failed to open /etc/fuse.conf: Permission denied</pre>
-
-  <p>The <a href="http://blog.tordeu.com/?p=50">fuse group is missing</a>. Add it and log out and back in.</p>
 
   <h3>LsFS: Directory Contents</h3>
   <h3>PyFS: Reading and Writing Files</h3>
   <h3>Concluding thoughts</h3>
 
 </section>
+
+<aside>
+  The general command-line options <code>-f</code>, <code>-d</code> and <code>-s</code> cannot be used from the command-line when using {{ fusepy }}. Instead, they mast be passed as boolean keyword arguments to the FUSE constructor: foreground (-f), debug (-d) and nothreads (-s).
+
+<pre class="prettyprint lang-python">
+if __name__ == '__main__':
+    fuse.FUSE(LsFS(), sys.argv[1], foreground=True, debug=True, nothreads=True)</pre>
+
+</aside>
+
+
+  <aside>
+  <hgroup>
+    <h2><a name="fusepy-common-error-messages" href="#fusepy-common-error-messages"><span class="text">by the way:</span> Common Error Messages</a></h2>
+  </hgroup>
+
+  <pre class="prettyprint lang-bash">fusermount: failed to open /etc/fuse.conf: Permission denied</pre>
+
+  <p>The <a href="http://blog.tordeu.com/?p=50">fuse group is missing</a>. Add it and log out and back in.</p>
+
+getattr returns string instead of dict:
+~/fuse-test$ ls mountpoint 
+ls: cannot access mountpoint: Bad address
+
+you did something wrong (import error, name error, ...)
+~/fuse-test$ ls mountpoint 
+ls: cannot access mountpoint: Input/output error
+
+  </aside>
+
 
 <footer>
   <h2> Give credit, where it's due</h2>
