@@ -1,139 +1,26 @@
 #!/usr/bin/env python
 import errno
-import importlib
 import logging
 import os
 import stat
-import traceback
-import types
 
 import fuse
 
-from phuse.common import logcall
+from phuse.common import (
+    add_module,
+    is_dir,
+    is_executable,
+    is_file,
+    get_content,
+    get_elements,
+    logcall,
+    PATH_MODULES,
+    reset_modules_list,
+)
 
 
 fuse.fuse_python_api = (0, 2)
 log = logging.getLogger(__name__)
-
-VALUE_TYPES = [
-    types.BooleanType,
-    types.ComplexType,
-    types.DictProxyType,
-    types.DictType,
-    types.DictionaryType,
-    types.FileType,
-    types.FloatType,
-    types.IntType,
-    types.ListType,
-    types.LongType,
-    types.NoneType,
-    types.StringType,
-    types.StringTypes,
-    types.TracebackType,
-    types.TupleType,
-]
-
-PATH_MODULES = "/run/modules"
-
-root_namespace = {
-    "run": {"modules": None},
-    "lib": {},
-}
-
-
-def addlib(name):
-    try:
-        root_namespace["lib"][name] = importlib.import_module(name)
-    except ImportError:
-        log.debug(traceback.format_exc())
-        raise IOError(-errno.ENXIO)
-
-
-def path_to_qname(path):
-    return [n for n in path.split("/") if n]
-
-
-def resolve(qname):
-    log.debug("Resolving: {}".format(qname))
-    obj = None
-    parts = qname[:]
-    while parts:
-        name = parts.pop(0)
-        if obj is None:
-            obj = root_namespace[name]
-        elif len(qname) - len(parts) == 2:
-            obj = obj[name]
-        else:
-            pyname = name[1:] if name.startswith(".") else name
-            obj = getattr(obj, pyname)
-    log.debug("Resolved {} to {})".format(qname, obj))
-    return obj
-
-
-def is_dir(path):
-    return (
-        path[1:] in root_namespace or
-        isinstance(resolve(path_to_qname(path)), types.ModuleType)
-    )
-
-
-def is_file(path):
-    return (
-        is_executable(path) or
-        is_datafile(path)
-    )
-
-
-def is_executable(path):
-    return (
-        hasattr(resolve(path_to_qname(path)), "__call__")
-    )
-
-
-def is_datafile(path):
-    return (
-        path == PATH_MODULES or
-        any(
-            isinstance(resolve(path_to_qname(path)), type_)
-            for type_ in VALUE_TYPES
-        )
-    )
-
-
-@logcall
-def get_elements(path):
-    log.debug("Getting contents for: {}".format(path))
-    qname = path_to_qname(path)
-
-    def _get_visible_elements():
-        if qname == []:
-            return root_namespace.keys()
-        if len(qname) == 1:
-            return root_namespace[path[1:]].keys()
-        else:
-            return dir(resolve(qname))
-
-    all_names = []
-    for name in _get_visible_elements():
-        all_names.append(
-            "{prefix}{name}".format(
-                prefix="." if name.startswith("_") else "",
-                name=name,
-            )
-        )
-    log.debug("Got unfiltered elements for path {}: {}".format(
-        path, all_names))
-
-    chosen_names = []
-    for name in all_names:
-        if len(qname) == 0:
-            chosen_names.append(name)
-        else:
-            child_path = "/" + "/".join(qname + [name])
-            if is_file(child_path) or is_dir(child_path):
-                chosen_names.append(name)
-    log.debug("For {} got contents: {}".format(path, chosen_names))
-    return chosen_names
 
 
 class DirectoryMapping(object):
@@ -149,16 +36,6 @@ class DirectoryMapping(object):
 
 
 class FileMapping(object):
-    __EXEC_TEMPLATE = """#!/usr/bin/python
-
-import sys
-import {modulename}
-
-if __name__ == '__main__':
-    print({modulename}.{functionname}(*sys.argv[1:]))
-
-"""
-
     @logcall
     def __init__(self, path, flags, **kw):
         if path == PATH_MODULES:
@@ -169,7 +46,7 @@ if __name__ == '__main__':
                 ))
                 raise IOError(-errno.EPERM)
             if flags & os.O_TRUNC:
-                root_namespace["lib"] = {}
+                reset_modules_list()
         else:
             if flags & os.O_WRONLY or flags & os.O_RDWR:
                 log.debug("Cannot write to Python objects. Flags: {}".format(
@@ -177,15 +54,22 @@ if __name__ == '__main__':
                 ))
                 raise IOError(-errno.EPERM)
         self.path = path
-        # Workaround for uncleared exception state. Real bugfix:
+        # Workaround for uncleared exception state.
+        # Real bugfix:
         # http://sourceforge.net/p/fuse/fuse-python/ci/7e29c2aeedf908732121559a31ba615b4c058fab/  # noqa
+        # Comment out, if you see this in strace, meaning you don't have a
+        # patched version yet:
+        # open("mountpoint/run/modules", O_WRONLY|O_CREAT|O_TRUNC, 0666) = -1 EINVAL (Invalid argument)  # noqa
+        #
         # self.direct_io = False
         # self.keep_cache = False
 
     @logcall
+    def get_text(self):
+        return get_content(self.path)
+
+    @logcall
     def read(self, size, offset, *args):
-        log.debug("read(size={}, offset={}, args={}, path={})".format(
-            size, offset, args, self.path))
         return self._read_from_string(
             self.get_text(),
             size,
@@ -198,15 +82,8 @@ if __name__ == '__main__':
             log.debug("Must either append to or truncate a file.")
             raise IOError(-errno.EPERM)
         if buf.strip():
-            addlib(buf.strip())
+            add_module(buf.strip())
         return len(buf)
-
-    @logcall
-    def get_text(self):
-        if self.path == PATH_MODULES:
-            return "\n".join(root_namespace["lib"].keys())
-        else:
-            return self._render_template()
 
     def _read_from_string(self, text, size, offset):
         slen = len(text)
@@ -218,22 +95,6 @@ if __name__ == '__main__':
             buf = ''
         return buf
 
-    @logcall
-    def _render_template(self):
-        qname = path_to_qname(self.path)
-        if is_executable(self.path):
-            return self.__EXEC_TEMPLATE.format(
-                modulename=".".join(qname[1:-1]),
-                functionname=qname[-1],
-            )
-        elif is_datafile(self.path):
-            obj = resolve(qname)
-            if isinstance(obj, list):
-                return os.linesep.join(obj)
-            return str(obj)
-        else:
-            raise IOError("Cannot read unknown filetype", errno.ENOTSUP)
-
 
 class PyFS(fuse.Fuse):
     dir_class = DirectoryMapping
@@ -242,15 +103,7 @@ class PyFS(fuse.Fuse):
     def __init__(self):
         super(PyFS, self).__init__(dash_s_do='setsingle')
         for name in ("json", "os", "sys"):
-            addlib(name)
-
-    @logcall
-    def truncate(self, path, len, *args):
-        if path != PATH_MODULES:
-            raise IOError(-errno.EPERM)
-        if len != 0:
-            raise IOError(-errno.EPERM)
-        root_namespace["lib"] = {}
+            add_module(name)
 
     @logcall
     def getattr(self, path):
@@ -275,6 +128,14 @@ class PyFS(fuse.Fuse):
         else:
             return -errno.ENOENT
         return st
+
+    @logcall
+    def truncate(self, path, len, *args):
+        if path != PATH_MODULES:
+            raise IOError(-errno.EPERM)
+        if len != 0:
+            raise IOError(-errno.EPERM)
+        reset_modules_list()
 
 
 def main():
