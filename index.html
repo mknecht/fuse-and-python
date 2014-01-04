@@ -479,7 +479,7 @@ bash: mountpoint/hello: Invalid argument</pre>
   <p><a href="https://github.com/terencehonles/fusepy">{{ page.fusepy }}</a> provides ctypes based Python bindings to {{ page.fuse }}.</p>
 
   <h3>Installation</h3>
-  <p>Can't be installed in a virtualenv. That means: Must install system-wide and can't tst fuse-python and fusepy at the same time, since both use "fuse" as module name. Meh.</p>
+  <p>Can't be installed in a virtualenv. That means: Must install system-wide and can't tst fuse-python and fusepy at the same time, since both use "fuse" as module name. Meh. This is what you get for unintentionally importing the wrong one:</p>
 
   <pre class="prettyprint">Traceback (most recent call last):
   File "/home/murat/ws/fuse-and-python/phuse/fusepython/pyfs.py", line 238, in <module>
@@ -487,12 +487,67 @@ bash: mountpoint/hello: Invalid argument</pre>
 AttributeError: 'module' object has no attribute 'Fuse'</module>
   </pre>
 
-
-
   <h3>NopFS: The bare minimum</h3>
+  Again, here's the minimal filesystem: doing nothing, but mountable.
 
+  <pre class="prettyprint lang-python linenums">
+import fuse
+
+
+class NopFS(fuse.Operations):
+    pass
+
+if __name__ == '__main__':
+    fuse.FUSE(NopFS(), sys.argv[1])</pre>
+
+  <p>The code is self-explanatory. The differences to {{ fp }} are worth mentioning, though.</p>
+
+  <ul class="code-explanation">
+    <li><emph>4:</emph> We subclass <code>fuse.Operations</code>. As can be seen below, this is not the class we hand control to. {{ fusepy }} prefers composition over inheritance for separating the filesystem logic from the generic code. Makes things much more understandable for me.</li>
+    <li><emph>8:</emph> We have to retrieve the mountpoint argument ourselves and then pass it to {{ fusepy }}.</li>
+  </ul>
+
+  <p>Now, this can be mounted as before (without the <code>-s</code>, though). A <code>ls</code> on the directory reveals something nice about {{ fusepy }}.
+
+  <pre class="prettyprint lang-bash">
+~/fuse-test$ ls mountpoint/
+~/fuse-test$ ls -hal mountpoint/
+total 4,0K
+drwxr-xr-x  2 root  root     0 Jan  1  1970 .
+drwxrwxr-x 10 murat murat 4,0K Dez 26 16:28 ..
+  </pre>
+
+  <p>{{ fusepy }} comes along with some minimal, but nice defaults. In this case, {{ readdir }} always returns <code>['.', '..']</code> and that's why we're not running into errors immediately.</p>
 
   <h3>LsFS: Directory Contents</h3>
+  How do we add a file and a directory with {{ fusepy }}? It's fairly simple:
+
+  <pre class="prettyprint lang-python linenums">
+class LsFS(fuse.Operations):
+    def getattr(self, path, fh=None):
+        if path[1:] == "some_dir" or path == '/':
+            return dict(
+                st_mode=(stat.S_IFDIR | 0755),
+                st_nlink=2,
+            )
+        elif path[1:] == "some_file":
+            return dict(
+                st_mode=(stat.S_IFREG | 0644),
+                st_nlink=1,
+            )
+        else:
+            raise fuse.FuseOSError(errno.ENOENT)
+
+    def readdir(self, path, fh):
+        if path == "/":
+            return [".", "..", "some_file", "some_dir"]
+  </pre>
+  
+  <ul class="code-explanation">
+    <li><emph>4:</emph> Subclass <code>fuse.Operations</code></li>
+  
+
+
   <h3>PyFS: Reading and Writing Files</h3>
   <h3>Concluding thoughts</h3>
 
