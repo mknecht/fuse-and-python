@@ -8,7 +8,8 @@
 #
 
 import errno
-from itertools import chain
+from itertools import chain, count
+import os
 import logging
 import stat
 import sys
@@ -33,8 +34,11 @@ class PyFS(fuse.Operations):
 
     def __init__(self):
         super(PyFS, self).__init__()
+        self._next_fh = count()
+        self._flags_for_open_files = {}  # file handle -> fh
         for name in ("json", "os", "sys"):
             add_module(name)
+        self._log = logging.getLogger(self.__class__.__name__)
 
     @logcall
     def getattr(self, path, fh=None):
@@ -75,6 +79,50 @@ class PyFS(fuse.Operations):
     @logcall
     def readdir(self, path, fh):
         return (name for name in chain([".", ".."], get_elements(path)))
+
+    def open(self, path, flags):
+        if path == PATH_MODULES:
+            if flags & os.O_RDWR:
+                self._log.debug(
+                    "Cannot allow readwrite access. Flags: {}".format(flags))
+                raise fuse.FuseOSError(errno.EPERM)
+            if flags & os.O_TRUNC:
+                reset_modules_list()
+        else:
+            if flags & os.O_WRONLY or flags & os.O_RDWR:
+                self._log.debug(
+                    "Cannot write to Python objects. Flags: {}".format(flags))
+                raise fuse.FuseOSError(errno.EPERM)
+
+        fh = self._next_fh.next()
+        self._flags_for_open_files[fh] = flags
+        return fh
+
+    def truncate(self, path, length, fh=None):
+        if path != PATH_MODULES:
+            raise fuse.FuseOSError(errno.EPERM)
+        if length != 0:
+            self._log.debug("Must completely truncate the modules file.")
+            raise IOError(errno.EPERM)
+        reset_modules_list()
+
+    def release(self, path, fh):
+        if fh not in self._flags_for_open_files:
+            # EBADFD = "File descriptor in bad state" (not sure it's correct)
+            raise fuse.FuseOSError(errno.EBADFD)
+        del self._flags_for_open_files[fh]
+        return fh
+
+    def write(self, path, data, offset, fh):
+        if fh not in self._flags_for_open_files:
+            # EBADFD = "File descriptor in bad state" (not sure it's correct)
+            raise fuse.FuseOSError(errno.EBADFD)
+        if not self._flags_for_open_files[fh] & os.O_APPEND and offset != 0:
+            self._log.debug("Must either append to or truncate a file.")
+            raise fuse.FuseOSError(-errno.EPERM)
+        if data.strip():
+            add_module(data.strip())
+        return len(data)
 
 
 if __name__ == '__main__':
