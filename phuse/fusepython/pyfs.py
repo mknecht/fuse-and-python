@@ -15,6 +15,7 @@ from phuse.common import (
     get_elements,
     logcall,
     PATH_MODULES,
+    read_from_string,
     reset_modules_list,
 )
 
@@ -70,7 +71,7 @@ class FileMapping(object):
 
     @logcall
     def read(self, size, offset, *args):
-        return self._read_from_string(
+        return read_from_string(
             self.get_text(),
             size,
             offset,
@@ -84,16 +85,6 @@ class FileMapping(object):
         if buf.strip():
             add_module(buf.strip())
         return len(buf)
-
-    def _read_from_string(self, text, size, offset):
-        slen = len(text)
-        if offset < slen:
-            if offset + size > slen:
-                size = slen - offset
-            buf = text[offset:offset+size]
-        else:
-            buf = ''
-        return buf
 
 
 class PyFS(fuse.Fuse):
@@ -112,7 +103,7 @@ class PyFS(fuse.Fuse):
         if path == '/' or path.endswith("/.") or path.endswith("/.."):
             st.st_mode = stat.S_IFDIR | 0555
             st.st_nlink = 2
-        elif is_dir(path):  # Needs to come before
+        elif is_dir(path):
             st.st_mode = stat.S_IFDIR | 0555
             st.st_nlink = 3
         elif is_file(path):

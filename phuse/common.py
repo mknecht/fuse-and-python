@@ -203,3 +203,14 @@ def _is_datafile(path):
             for type_ in VALUE_TYPES
         )
     )
+
+
+def read_from_string(text, size, offset):
+        slen = len(text)
+        if offset < slen:
+            if offset + size > slen:
+                size = slen - offset
+            buf = text[offset:offset+size]
+        else:
+            buf = ''
+        return buf
