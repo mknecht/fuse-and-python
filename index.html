@@ -246,7 +246,7 @@ drwxr-xr-x 2 root root 0 Jan  1  1970 some_dir
   <p>The methods above we can use to implement the Python filesystem. I will be using the OO approach. Since it's just too much details code, I'll only show the most important snippets here. Refer to the <a href="https://github.com/mknecht/fuse-and-python/blob/master/phuse/fusepython/pyfs.py">source code of PyFS</a> for the complete implementation. By default, I am importing and making available three modules under <code>/lib</code>:</p>
 
   <pre class="prettyprint lang-bash">~/fuse-test$ ls mountpoint/lib/
-errno  json  os  sys</pre>
+json  os  sys</pre>
 
   <p>The next obvious feature is reading: For that we implement the <code>read</code> method on the file access class.</p>
 
