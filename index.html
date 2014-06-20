@@ -500,14 +500,14 @@ class NopFS(fuse.Operations):
 if __name__ == '__main__':
     fuse.FUSE(NopFS(), sys.argv[1])</pre>
 
-  <p>The code is self-explanatory. The differences to {{ fp }} are worth mentioning, though.</p>
+  <p>The code is self-explanatory. The differences to {{ page.fp }} are worth mentioning, though.</p>
 
   <ul class="code-explanation">
-    <li><emph>4:</emph> We subclass <code>fuse.Operations</code>. As can be seen below, this is not the class we hand control to. {{ fusepy }} prefers composition over inheritance for separating the filesystem logic from the generic code. Makes things much more understandable for me.</li>
-    <li><emph>8:</emph> We have to retrieve the mountpoint argument ourselves and then pass it to {{ fusepy }}.</li>
+    <li><emph>4:</emph> We subclass <code>fuse.Operations</code>. As can be seen below, this is not the class we hand control to. {{ page.fusepy }} prefers composition over inheritance for separating the filesystem logic from the generic code. Makes things much more understandable for me.</li>
+    <li><emph>8:</emph> We have to retrieve the mountpoint argument ourselves and then pass it to {{ page.fusepy }}.</li>
   </ul>
 
-  <p>Now, this can be mounted as before (without the <code>-s</code>, though). A <code>ls</code> on the directory reveals something nice about {{ fusepy }}.
+  <p>Now, this can be mounted as before (without the <code>-s</code>, though). A <code>ls</code> on the directory reveals something nice about {{ page.fusepy }}.
 
   <pre class="prettyprint lang-bash">
 ~/fuse-test$ ls mountpoint/
@@ -517,10 +517,10 @@ drwxr-xr-x  2 root  root     0 Jan  1  1970 .
 drwxrwxr-x 10 murat murat 4,0K Dez 26 16:28 ..
   </pre>
 
-  <p>{{ fusepy }} comes along with some minimal, but nice defaults. In this case, {{ readdir }} always returns <code>['.', '..']</code> and that's why we're not running into errors immediately.</p>
+  <p>{{ page.fusepy }} comes along with some minimal, but nice defaults. In this case, <code>readdir</code> always returns <code>['.', '..']</code> and that's why we're not running into errors immediately.</p>
 
   <h3>LsFS: Directory Contents</h3>
-  How do we add a file and a directory with {{ fusepy }}? It's fairly simple:
+  How do we add a file and a directory with {{ page.fusepy }}? It's fairly simple:
 
   <pre class="prettyprint lang-python linenums">
 class LsFS(fuse.Operations):
@@ -554,7 +554,7 @@ class LsFS(fuse.Operations):
 </section>
 
 <aside>
-  The general command-line options <code>-f</code>, <code>-d</code> and <code>-s</code> cannot be used from the command-line when using {{ fusepy }}. Instead, they mast be passed as boolean keyword arguments to the FUSE constructor: foreground (-f), debug (-d) and nothreads (-s).
+  The general command-line options <code>-f</code>, <code>-d</code> and <code>-s</code> cannot be used from the command-line when using {{ page.fusepy }}. Instead, they must be passed as boolean keyword arguments to the FUSE constructor: foreground (-f), debug (-d) and nothreads (-s).
 
 <pre class="prettyprint lang-python">
 if __name__ == '__main__':
