@@ -10,7 +10,7 @@
 	    38: function() { return grid.handleScrollUp(); },
 	    39: function moveRight() { grid.moveRel(+1, 0); return false; },
 	    40: function() { return grid.handleScrollDown(); }
-	}
+	};
 	function findHandler(keyCode) {
 	    if (handlers.hasOwnProperty(keyCode)) {
 		return handlers[keyCode];
@@ -32,7 +32,8 @@
 		var endOfContent = (el.offset().top + el.outerHeight(true)); // margin included twice, but should not matter.
 		return endOfScreen < endOfContent;
 	    },
-	    el: el
+	    topMargin: function() { return parseInt(el.css('margin-top')); },
+	    outerHeight: function() { return el.outerHeight(); }
 	};
     }
 
@@ -43,7 +44,8 @@
 	    },
 	    hasContentBelow: function() {
 		return false;
-	    }
+	    },
+	    topMargin: function() { return 0; }
 	};
     }
     
@@ -67,14 +69,17 @@
 	    var pos = this.getCoordinates();
 	    this.moveTo({y: pos.y + ydiff, x: pos.x + xdiff});
 	},
-	moveTo: function(pos, options) {
-	    if (pos.x < 0 || pos.y < 0) {
+	moveTo: function(pos, custom) {
+	    var defaults = {bottom:false};
+	    var options = $.extend({}, defaults, custom);
+       	    if (pos.x < 0 || pos.y < 0) {
 		return;
 	    }
-	    var ydiff = options.bottom ? this.getCell(pos).el.outerHeight() - $w.height() : 0;
+	    var ydiff = options.bottom ? this.getCell(pos).outerHeight() - $w.height() : 0;
+	    var toY = pos.y * (this.cellHeight + this.getCell(pos).topMargin()) + ydiff;
 	    $('html:not(:animated),body:not(:animated)').animate({
 		scrollLeft: pos.x * this.cellWidth,
-		scrollTop: pos.y * (this.cellHeight + ((pos.y) ? parseInt(this.getCell(pos).el.css('margin-top')) : 0) + ydiff)
+		scrollTop: toY
 	    }, 400);
 	},
 	getCoordinates: function() {
@@ -142,8 +147,9 @@
 		var section = $(this);
 		var sec_off = section.offset();
 		section.wrap("<div></div>");
-		section.parent("div").height(that.cellHeight);
-		section.nextUntil('section', 'aside').each(function(idx) {
+		var div = section.parent("div");
+		div.height(that.cellHeight);
+		div.nextUntil('div section', 'aside').each(function(idx) {
 		    ($(this)
 		     .offset({top:sec_off.top, left:sec_off.left + $w.width() * (idx + 1)})
 		     .width(section.width())
@@ -151,7 +157,7 @@
 		});
 	    });
 	}
-    }
+    };
 
     $(window).load(function() {
 	grid.establishCells();
