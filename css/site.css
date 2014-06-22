@@ -232,3 +232,8 @@ span.todo, a.todo {
   color: #F00;
   font-style: italic;
 }
+
+/* line 188, ../_sass/site.scss */
+.square {
+  background-color: red;
+}

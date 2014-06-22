@@ -3,6 +3,7 @@
     var $w = $(window);
     var $d = $(document);
     var grid;
+    var tacticalMap;
     
     function handleKeydown(e) {
 	handlers = {
@@ -48,6 +49,43 @@
 	    topMargin: function() { return 0; }
 	};
     }
+
+    tacticalMap = {
+	init: function() {
+	    function placeSquare(x, y, el, maxdepth) {
+		($("<div></div>")
+		 .appendTo($('body'))
+		 .css("position", "fixed")
+		 .css("top", y * 20 + 10)
+		 .css("left", $w.width() - maxdepth * 20 + x * 20 - 10)
+		 .css("width", 10)
+		 .css("height", 10)
+		 .addClass("square")
+		 .addClass(function() {
+		     return el.isBeingLookedAt() ? "looked-at" : "not-looked-at";
+		 })
+		);
+	    }
+
+	    var maxdepth = (
+		$('header, section, footer')
+		    .map(function(_, el) { 
+			return $(el).parent().nextUntil('div', 'aside').length;
+		    })
+		    .get()
+		    .reduce(function(left, right) { return Math.max(left, right); })
+		    + 1 // number of aside elements + section in front
+	    ); 
+	    $('header, section, footer').each(function(y, section) {
+		placeSquare(0, y, $(section), maxdepth);
+		$(section).parent().nextUntil('div', 'aside').each(function(x, aside) {
+		    placeSquare(x + 1, y, $(aside), maxdepth);
+		});
+	    });
+	},
+	draw: function() {
+	}
+    };
     
     grid = {
 	cellHeight: 0,
@@ -67,7 +105,7 @@
 	},
 	moveRel: function (xdiff, ydiff, options) {
 	    var pos = this.getCoordinates();
-	    this.moveTo({y: pos.y + ydiff, x: pos.x + xdiff});
+	    this.moveTo({y: pos.y + ydiff, x: pos.x + xdiff}, options);
 	},
 	moveTo: function(pos, custom) {
 	    var defaults = {bottom:false};
@@ -75,7 +113,7 @@
        	    if (pos.x < 0 || pos.y < 0) {
 		return;
 	    }
-	    var ydiff = options.bottom ? this.getCell(pos).outerHeight() - $w.height() : 0;
+	    var ydiff = options.bottom ? this.getCell(pos).outerHeight(true) - $w.height() + this.getCell(pos).topMargin() : 0;
 	    var toY = pos.y * (this.cellHeight + this.getCell(pos).topMargin()) + ydiff;
 	    $('html:not(:animated),body:not(:animated)').animate({
 		scrollLeft: pos.x * this.cellWidth,
@@ -160,9 +198,20 @@
     };
 
     $(window).load(function() {
+	$.fn.isBeingLookedAt = function() {
+	    var rect = this.get()[0].getBoundingClientRect();
+	    return (
+		rect.top < $w.height()/2 &&
+		    rect.left < $w.width()/2 &&
+		    rect.bottom > $w.height()/2 &&
+		    rect.right > $w.width()/2
+	    );
+	};
 	grid.establishCells();
 	grid.updateCellValues();
 	grid.homogenizeCells();
+	tacticalMap.init();
+	tacticalMap.draw();
 	$(document).keydown(handleKeydown);
     });
 })(jQuery, window);

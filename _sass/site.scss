@@ -184,3 +184,13 @@ span.todo, a.todo {
     color: #F00;
     font-style: italic;
 }
+
+.square {
+    .looking-at {
+	background-color: red;
+    }
+
+    .not-looking-at {
+	background-color: grey;
+    }
+}
