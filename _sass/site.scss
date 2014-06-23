@@ -186,10 +186,12 @@ span.todo, a.todo {
 }
 
 
-.box-square.box-looking-at {
+.box-overview {
+    background-color: grey;
+}
+
+.box-overview.box-looking-at {
     background-color: red;
 }
 
-.box-square.box-not-looking-at {
-    background-color: grey;
-}
+

@@ -8,9 +8,9 @@
     function handleKeydown(e) {
 	var handlers = {
 	    37: function moveLeft() { grid.moveRel(-1, 0); return false; },
-	    38: function() { return grid.handleScrollUp(); },
+	    38: function() { return grid.handleArrowUp(); },
 	    39: function moveRight() { grid.moveRel(+1, 0); return false; },
-	    40: function() { return grid.handleScrollDown(); }
+	    40: function() { return grid.handleArrowDown(); }
 	};
 	function findHandler(keyCode) {
 	    if (handlers.hasOwnProperty(keyCode)) {
@@ -21,20 +21,23 @@
 	findHandler(e.keyCode)();
     }
 
+    function handleScrolling() {
+	overview.update();
+    };
+
+
     overview = {
 	init: function() {
-	    function placeSquare(x, y, el, maxdepth) {
+	    function placeSquare(x, y, overviewDiv) {
 		($("<div></div>")
-		 .appendTo($('body'))
-		 .css("position", "fixed")
-		 .css("top", y * 20 + 10)
-		 .css("left", $w.width() - maxdepth * 20 + x * 20 - 10)
+		 .appendTo(overviewDiv)
+		 .css("position", "absolute")
+		 .css("top", 5 + y * 15)
+		 .css("left", 5 + x * 15)
 		 .css("width", 10)
 		 .css("height", 10)
-		 .addClass("box-square")
-		 .addClass(function() {
-		     return el.isBeingLookedAt() ? "box-looking-at" : "box-not-looking-at";
-		 })
+		 .addClass("box-overview")
+		 .addClass(x === 0 ? 'box-ov-main' : 'box-ov-aside')
 		);
 	    }
 
@@ -46,15 +49,36 @@
 		    .get()
 		    .reduce(function(left, right) { return Math.max(left, right); })
 		    + 1 // number of aside elements + section in front
-	    ); 
+	    );
+	    var overviewDiv = $('<div id="box-overview"></div>')
+		.appendTo('body')
+		    .css('position', 'fixed')
+		    .css('top', 20)
+		    .css('left', $w.width() - 20 - 15 * maxdepth - 5 * 2);
 	    $('div.box-main').each(function(y, section) {
-		placeSquare(0, y, $(section), maxdepth);
+		placeSquare(0, y, overviewDiv);
 		$(section).nextUntil('div.box-main', 'div.box-aside').each(function(x, aside) {
-		    placeSquare(x + 1, y, $(aside), maxdepth);
+		    placeSquare(x + 1, y, overviewDiv);
+		});
+	    });
+	    this.update();
+	},
+	update: function() {
+	    var that = this;
+	    $('div.box-ov-main', '#box-overview').each(function(y, section) {
+		that.updateOverviewBox($(section), 0, y);
+		$(section).nextUntil('div.box-ov-main', 'div.box-ov-aside').each(function(x, aside) {
+		    that.updateOverviewBox($(aside), x+1, y);
 		});
 	    });
 	},
-	draw: function() {
+	updateOverviewBox: function(box, x, y) {
+	    var isBeingLookedAt = grid.getCellAt({x:x, y:y}).isBeingLookedAt();
+	    if (box.hasClass("box-looking-at") && !isBeingLookedAt) {
+		box.removeClass("box-looking-at");
+	    } else if (!box.hasClass("box-looking-at") && isBeingLookedAt) {
+		box.addClass('box-looking-at');
+	    }
 	}
     };
     
@@ -88,7 +112,7 @@
 		scrollTop: cell.offset().top - topMargin(cell) + ydiff
 	    }, 400);
 	},
-	handleScrollDown: function() {
+	handleArrowDown: function() {
 	    if (this.getCurrentCell().hasContentBelow()) {
 		// There is still content in the current cell
 		// that is below the currently visible part.
@@ -98,7 +122,7 @@
 	    this.moveRel(0, 1);
 	    return true;
 	},
-	handleScrollUp: function() {
+	handleArrowUp: function() {
 	    if (this.getCurrentCell().hasContentAbove()) {
 		// There is still content in the current cell
 		// that is above the currently visible part.
@@ -207,10 +231,11 @@
 	    var endOfContent = (el.offset().top + el.outerHeight(true)); // margin included twice, but should not matter.
 	    return endOfScreen < endOfContent;
 	};
+
 	grid.createCells();
 	grid.layoutCells();
 	overview.init();
-	overview.draw();
 	$(document).keydown(handleKeydown);
+	$(document).scroll(handleScrolling);
     });
 })(jQuery, window);

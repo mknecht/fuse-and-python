@@ -234,11 +234,11 @@ span.todo, a.todo {
 }
 
 /* line 189, ../_sass/site.scss */
-.box-square.box-looking-at {
-  background-color: red;
+.box-overview {
+  background-color: grey;
 }
 
 /* line 193, ../_sass/site.scss */
-.box-square.box-not-looking-at {
-  background-color: grey;
+.box-overview.box-looking-at {
+  background-color: red;
 }
