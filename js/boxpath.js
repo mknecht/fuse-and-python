@@ -18,7 +18,10 @@
 	    }
 	    return function() { return true; };
 	}
-	findHandler(e.keyCode)();
+	if (e.altKey === true || e.shiftKey === true || e.ctrlKey === true) {
+	    return true;
+	}
+	return findHandler(e.keyCode)();
     }
 
     function handleScrolling() {
@@ -113,26 +116,32 @@
 		scrollLeft: cell.getBoxCoordinates().x * $w.width(),
 		scrollTop: cell.offset().top - topMargin(cell) + ydiff
 	    }, 400);
+	    $('hgroup a[name]', cell).each(function(_, el) {
+		var name = $(el).attr("name");
+		$(el).attr('name', "");
+		location.hash = name;
+		$(el).attr('name', name);
+	    });
 	},
 	handleArrowDown: function() {
 	    if (this.getCurrentCell().hasContentBelow()) {
 		// There is still content in the current cell
 		// that is below the currently visible part.
 		// So, let the browser scroll as usual.
-		return false;
+		return true;
 	    }
 	    this.moveRel(0, 1);
-	    return true;
+	    return false;
 	},
 	handleArrowUp: function() {
 	    if (this.getCurrentCell().hasContentAbove()) {
 		// There is still content in the current cell
 		// that is above the currently visible part.
 		// So, let the browser scroll as usual.
-		return false;
+		return true;
 	    }
 	    this.moveRel(0, -1, {bottom: true});
-	    return true;
+	    return false;
 	},
 	getCurrentCell: function() {
 	    return $('div.box-cell').filter(function(idx, el) {
@@ -148,6 +157,17 @@
 		    .eq(pos.x)
 	    );
 	},
+	getCellAtPos: function(pos) {
+	    return $('div.box-cell').filter(function(_, el) {
+		var cell = $(el);
+		return (
+		    cell.offset().left <= pos.left
+			&& (cell.offset().left + cell.width()) >= pos.left
+			&& cell.offset().top <= pos.top
+			&& (cell.offset().top + cell.height()) >= pos.top
+		);
+	    });
+	},
 	createCells: function() {
 	    $('header, section, footer').each(function() {
 		var section_div = $(this).wrap("<div></div>").parent("div");
@@ -157,7 +177,6 @@
 		section_div.addClass("box-cell box-main");
 	    });
 	},
-
 	layoutCells: function() {
 	    function positionCells() {
 		$('div.box-main').each(function() {
@@ -196,6 +215,17 @@
 	    }
 	    homogenizeDimensions();
 	    positionCells();
+	},
+	replaceLinks: function() {
+	    $('a[href^="#"]').each(function(_, el) {
+		var hash = $(el).attr('href').substr(1);
+		var target = $('a[name="' + hash + '"]');
+		var link = $(el);
+		link.click(function() {
+		    grid.moveToCell(grid.getCellAtPos(target.offset()));
+		    return true;
+		});
+	    });
 	}
     };
 
@@ -236,6 +266,7 @@
 
 	grid.createCells();
 	grid.layoutCells();
+	grid.replaceLinks();
 	overview.init();
 	$(document).keydown(handleKeydown);
 	$(document).scroll(handleScrolling);
