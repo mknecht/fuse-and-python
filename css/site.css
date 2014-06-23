@@ -235,10 +235,15 @@ span.todo, a.todo {
 
 /* line 189, ../_sass/site.scss */
 .box-overview {
-  background-color: grey;
+  background-color: #eee8d5;
 }
 
 /* line 193, ../_sass/site.scss */
 .box-overview.box-looking-at {
-  background-color: red;
+  background-color: #268bd2;
+}
+
+/* line 197, ../_sass/site.scss */
+#box-overview {
+  border: solid 1px #eee8d5;
 }

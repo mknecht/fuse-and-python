@@ -54,7 +54,9 @@
 		.appendTo('body')
 		    .css('position', 'fixed')
 		    .css('top', 20)
-		    .css('left', $w.width() - 20 - 15 * maxdepth - 5 * 2);
+		    .css('left', $w.width() - 20 - 15 * maxdepth - 5 * 2)
+		    .height(5 + $('div.box-main').length * 15 + 5)
+		    .width(5 + maxdepth * 15 + 5);
 	    $('div.box-main').each(function(y, section) {
 		placeSquare(0, y, overviewDiv);
 		$(section).nextUntil('div.box-main', 'div.box-aside').each(function(x, aside) {

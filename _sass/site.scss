@@ -187,11 +187,14 @@ span.todo, a.todo {
 
 
 .box-overview {
-    background-color: grey;
+    background-color: $border;
 }
 
 .box-overview.box-looking-at {
-    background-color: red;
+    background-color: $blue;
 }
 
+#box-overview {
+    border: solid 1px $border;
+}
 
