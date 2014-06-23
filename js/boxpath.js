@@ -7,10 +7,10 @@
     
     function handleKeydown(e) {
 	var handlers = {
-	    37: function moveLeft() { grid.moveRel(-1, 0); return false; },
-	    38: function() { return grid.handleArrowUp(); },
-	    39: function moveRight() { grid.moveRel(+1, 0); return false; },
-	    40: function() { return grid.handleArrowDown(); }
+	    37: function moveLeft() { return grid.handleArrowLeft(); },
+	    38: function moveUp() { return grid.handleArrowUp(); },
+	    39: function moveRight() { return grid.handleArrowRight(); },
+	    40: function moveDown() { return grid.handleArrowDown(); }
 	};
 	function findHandler(keyCode) {
 	    if (handlers.hasOwnProperty(keyCode)) {
@@ -108,10 +108,9 @@
 	    var defaults = {bottom:false};
 	    var options = $.extend({}, defaults, custom);
 	    if (cell.length === 0) {
-		console.log("TODO: Determine to which cell to move next.");
 		return;
 	    }
-	    var ydiff = options.bottom ? Math.max(cell.outerHeight(true) - $w.height()) : 0;
+	    var ydiff = (options.bottom && (cell.children().outerHeight(true) > $w.height())) ? (Math.max(cell.children().outerHeight(true) - $w.height())) : 0;
 	    $('html:not(:animated),body:not(:animated)').animate({
 		scrollLeft: cell.getBoxCoordinates().x * $w.width(),
 		scrollTop: cell.offset().top - topMargin(cell) + ydiff
@@ -124,23 +123,33 @@
 	    });
 	},
 	handleArrowDown: function() {
-	    if (this.getCurrentCell().hasContentBelow()) {
-		// There is still content in the current cell
-		// that is below the currently visible part.
-		// So, let the browser scroll as usual.
+	    if (this.getCurrentCell().length === 0
+		|| this.getCurrentCell().hasContentBelow()) {
 		return true;
 	    }
 	    this.moveRel(0, 1);
 	    return false;
 	},
 	handleArrowUp: function() {
-	    if (this.getCurrentCell().hasContentAbove()) {
-		// There is still content in the current cell
-		// that is above the currently visible part.
-		// So, let the browser scroll as usual.
+	    if (this.getCurrentCell().length === 0 
+		|| this.getCurrentCell().hasContentAbove()) {
 		return true;
 	    }
 	    this.moveRel(0, -1, {bottom: true});
+	    return false;
+	},
+	handleArrowLeft: function() {
+	    if (this.getCurrentCell.length === 0) {
+		return true;
+	    }
+	    this.moveRel(+1, 0);
+	    return false;
+	},
+	handleArrowRight: function() {
+	    if (this.getCurrentCell.length === 0) {
+		return true;
+	    }
+	    grid.moveRel(-1, 0);
 	    return false;
 	},
 	getCurrentCell: function() {
