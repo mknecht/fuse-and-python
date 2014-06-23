@@ -233,7 +233,11 @@ span.todo, a.todo {
   font-style: italic;
 }
 
-/* line 188, ../_sass/site.scss */
-.square {
+/* line 190, ../_sass/site.scss */
+.boxl-square .box-looking-at {
   background-color: red;
+}
+/* line 194, ../_sass/site.scss */
+.boxl-square .box-not-looking-at {
+  background-color: grey;
 }

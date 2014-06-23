@@ -3,10 +3,10 @@
     var $w = $(window);
     var $d = $(document);
     var grid;
-    var tacticalMap;
+    var overview;
     
     function handleKeydown(e) {
-	handlers = {
+	var handlers = {
 	    37: function moveLeft() { grid.moveRel(-1, 0); return false; },
 	    38: function() { return grid.handleScrollUp(); },
 	    39: function moveRight() { grid.moveRel(+1, 0); return false; },
@@ -21,36 +21,7 @@
 	findHandler(e.keyCode)();
     }
 
-    function fullcell(el) {
-	return {
-	    hasContentAbove: function() {
-		var startOfScreen = $w.scrollTop();
-		var startOfContent = el.offset().top - parseInt(el.css('margin-top'));
-		return startOfContent < startOfScreen;
-	    },
-	    hasContentBelow: function() {
-		var endOfScreen = ($w.scrollTop() + $w.height());
-		var endOfContent = (el.offset().top + el.outerHeight(true)); // margin included twice, but should not matter.
-		return endOfScreen < endOfContent;
-	    },
-	    topMargin: function() { return parseInt(el.css('margin-top')); },
-	    outerHeight: function() { return el.outerHeight(); }
-	};
-    }
-
-    function emptycell() {
-	return {
-	    hasContentAbove: function() {
-		return false;
-	    },
-	    hasContentBelow: function() {
-		return false;
-	    },
-	    topMargin: function() { return 0; }
-	};
-    }
-
-    tacticalMap = {
+    overview = {
 	init: function() {
 	    function placeSquare(x, y, el, maxdepth) {
 		($("<div></div>")
@@ -62,7 +33,7 @@
 		 .css("height", 10)
 		 .addClass("square")
 		 .addClass(function() {
-		     return el.isBeingLookedAt() ? "looked-at" : "not-looked-at";
+		     return el.isBeingLookedAt() ? "box-looking-at" : "box-not-looking-at";
 		 })
 		);
 	    }
@@ -88,43 +59,38 @@
     };
     
     grid = {
-	cellHeight: 0,
-	cellWidth: 0,
-	rows: undefined,
-	numcolumns: 0,
-	updateCellValues: function() {
-	    this.cellHeight = Math.max(
-		$("aside, section, header, footer")
-		    .map(function(idx, el) {return $(el).outerHeight();})
-		    .get()
-		    .reduce(function(a, b) { return Math.max(a, b); }, 0)
-		,
-		$w.height()
-	    );
-	    this.cellWidth = $w.width();
-	},
 	moveRel: function (xdiff, ydiff, options) {
-	    var pos = this.getCoordinates();
-	    this.moveTo({y: pos.y + ydiff, x: pos.x + xdiff}, options);
+	    var pos = this.getCurrentCell().getBoxCoordinates();
+	    console.log("currently at: ");
+	    console.log(pos);
+	    this.moveToCoord({y: pos.y + ydiff, x: pos.x + xdiff}, options);
 	},
-	moveTo: function(pos, custom) {
-	    var defaults = {bottom:false};
-	    var options = $.extend({}, defaults, custom);
+	moveToCoord: function(pos, custom) {
        	    if (pos.x < 0 || pos.y < 0) {
 		return;
 	    }
-	    var ydiff = options.bottom ? this.getCell(pos).outerHeight(true) - $w.height() + this.getCell(pos).topMargin() : 0;
-	    var toY = pos.y * (this.cellHeight + this.getCell(pos).topMargin()) + ydiff;
-	    $('html:not(:animated),body:not(:animated)').animate({
-		scrollLeft: pos.x * this.cellWidth,
-		scrollTop: toY
-	    }, 400);
+	    console.log("moving to: ");
+	    console.log(pos);
+	    this.moveToCell(this.getCellAt(pos), custom);
 	},
-	getCoordinates: function() {
-	    return {
-		y: ~~(($d.scrollTop() + ($w.height()/2)) / this.cellHeight),
-		x: ~~(($d.scrollLeft() + ($w.width()/2)) / this.cellWidth)
-	    };
+	moveToCell: function(cell, custom) {
+	    function topMargin(cell) {
+		return parseInt(cell.children().css('margin-top'));
+	    }
+	    function leftMargin(cell) {
+		return parseInt(cell.children().css('margin-left'));
+	    }
+	    var defaults = {bottom:false};
+	    var options = $.extend({}, defaults, custom);
+	    if (cell.length === 0) {
+		console.log("TODO: Determine to which cell to move next.");
+		return;
+	    }
+	    var ydiff = options.bottom ? Math.max(cell.outerHeight(true) - $w.height()) : 0;
+	    $('html:not(:animated),body:not(:animated)').animate({
+		scrollLeft: cell.getBoxCoordinates().x * $w.width(),
+		scrollTop: cell.offset().top - topMargin(cell) + ydiff
+	    }, 400);
 	},
 	handleScrollDown: function() {
 	    if (this.getCurrentCell().hasContentBelow()) {
@@ -147,53 +113,67 @@
 	    return true;
 	},
 	getCurrentCell: function() {
-	    return this.getCell(this.getCoordinates());
-	},
-	getCell: function(pos) {
-	    var row;
-	    if (pos.x < 0 || pos.x >= this.colunms) {
-		return undefined;
-	    }
-	    if (pos.y < 0 || pos.y >= this.rows.length) {
-		return undefined;
-	    }
-	    row = this.rows[pos.y];
-	    if (pos.x >= row.length) {
-		return emptycell();
-	    } else {
-		return fullcell(row[pos.x]);
-	    }
-	},
-	establishCells: function() {
-	    var that = this;
-	    this.numcolumns = 0;
-	    this.rows = [];
-	    $('header, section, footer').each(function() {
-		var section = $(this);
-		var row = [section];
-		that.rows[that.rows.length] = row;
-		section.nextUntil('section', 'aside').each(function(idx) {
-		    row[row.length] = $(this);
-		});
-		that.numcolumns = Math.max(that.numcolumns, row.length);
+	    return $('div.box-cell').filter(function(idx, el) {
+		return $(this).isBeingLookedAt();
 	    });
 	},
-	homogenizeCells: function() {
-	    var that = this;
-	    $('aside').css('display', 'none').css('position', 'absolute');
+	getCellAt: function(pos) {
+	    return (
+		$('div.box-main')
+		    .eq(pos.y)
+		    .nextUntil('div.box-main', 'div.box-aside')
+		    .addBack() // 
+		    .eq(pos.x)
+	    );
+	},
+	createCells: function() {
 	    $('header, section, footer').each(function() {
-		var section = $(this);
-		var sec_off = section.offset();
-		section.wrap("<div></div>");
-		var div = section.parent("div");
-		div.height(that.cellHeight);
-		div.nextUntil('div section', 'aside').each(function(idx) {
-		    ($(this)
-		     .offset({top:sec_off.top, left:sec_off.left + $w.width() * (idx + 1)})
-		     .width(section.width())
-		     .css('display', 'block'));
+		var section_div = $(this).wrap("<div></div>").parent("div");
+		section_div.nextUntil('section, footer', 'aside').each(function(idx) {
+		    $(this).wrap("<div></div>").parent().addClass("box-cell box-aside");
 		});
+		section_div.addClass("box-cell box-main");
 	    });
+	},
+
+	layoutCells: function() {
+	    function positionCells() {
+		$('div.box-main').each(function() {
+		    var section = $(this);
+		    var secOff = section.offset();
+		    section.nextUntil('div.box-main', 'div.box-aside').each(function(idx) {
+			var asideDiv = $(this);
+			(asideDiv
+			 .css('position', 'absolute')
+			 .offset({top:secOff.top, left:secOff.left + $w.width() * (idx + 1)})
+			);
+		    });
+		});
+	    }
+	    function homogenizeDimensions() {
+		$('div.box-main').each(function() {
+		    var section = $(this);
+		    var maxHeight = Math.max(
+			$w.height(),
+			(
+			    section
+				.nextUntil('div.box-main', 'div.box-aside')
+				.addBack()
+				.map(function(_, el) { return $(el).height(); })
+				.toArray()
+				.reduce(function(left, right) {
+				    return Math.max(left, right);
+				})
+			)
+		    );
+		    section.height(maxHeight);
+		    section.nextUntil('div.box-main', 'div.box-aside').each(function() {
+			$(this).height(maxHeight).width(section.width());
+		    });
+ 		});
+	    }
+	    homogenizeDimensions();
+	    positionCells();
 	}
     };
 
@@ -207,11 +187,34 @@
 		    rect.right > $w.width()/2
 	    );
 	};
-	grid.establishCells();
-	grid.updateCellValues();
-	grid.homogenizeCells();
-	tacticalMap.init();
-	tacticalMap.draw();
+	$.fn.getBoxCoordinates = function() {
+	    return {
+		y: $(this).prevAll('div.box-main').length - ($(this).hasClass('box-main') ? 0 : 1),
+		x: $(this).hasClass('box-main') ? 0 : ($(this).prevUntil('div.box-main', 'div.box-aside').addBack().length)
+	    };
+	};
+	$.fn.hasContentAbove = function() {
+	    if (!$(this).hasClass('box-cell')) {
+		return false;
+	    }
+	    var el = $(this).children();
+	    var startOfScreen = $w.scrollTop();
+	    var startOfContent = el.offset().top - parseInt(el.children().css('margin-top'));
+	    return startOfContent < startOfScreen;
+	};
+	$.fn.hasContentBelow = function() {
+	    if (!$(this).hasClass('box-cell')) {
+		return false;
+	    }
+	    var el = $(this).children();
+	    var endOfScreen = ($w.scrollTop() + $w.height());
+	    var endOfContent = (el.offset().top + el.outerHeight(true)); // margin included twice, but should not matter.
+	    return endOfScreen < endOfContent;
+	};
+	grid.createCells();
+	grid.layoutCells();
+	overview.init();
+	overview.draw();
 	$(document).keydown(handleKeydown);
     });
 })(jQuery, window);

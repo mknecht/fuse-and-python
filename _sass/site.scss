@@ -185,12 +185,13 @@ span.todo, a.todo {
     font-style: italic;
 }
 
-.square {
-    .looking-at {
+
+.boxl-square {
+    .box-looking-at {
 	background-color: red;
     }
 
-    .not-looking-at {
+    .box-not-looking-at {
 	background-color: grey;
     }
 }
