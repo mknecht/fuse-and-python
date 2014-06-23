@@ -31,7 +31,7 @@
 		 .css("left", $w.width() - maxdepth * 20 + x * 20 - 10)
 		 .css("width", 10)
 		 .css("height", 10)
-		 .addClass("square")
+		 .addClass("box-square")
 		 .addClass(function() {
 		     return el.isBeingLookedAt() ? "box-looking-at" : "box-not-looking-at";
 		 })
@@ -39,17 +39,17 @@
 	    }
 
 	    var maxdepth = (
-		$('header, section, footer')
+		$('div.box-main')
 		    .map(function(_, el) { 
-			return $(el).parent().nextUntil('div', 'aside').length;
+			return $(el).nextUntil('div.box-main', 'div.box-aside').length;
 		    })
 		    .get()
 		    .reduce(function(left, right) { return Math.max(left, right); })
 		    + 1 // number of aside elements + section in front
 	    ); 
-	    $('header, section, footer').each(function(y, section) {
+	    $('div.box-main').each(function(y, section) {
 		placeSquare(0, y, $(section), maxdepth);
-		$(section).parent().nextUntil('div', 'aside').each(function(x, aside) {
+		$(section).nextUntil('div.box-main', 'div.box-aside').each(function(x, aside) {
 		    placeSquare(x + 1, y, $(aside), maxdepth);
 		});
 	    });
@@ -61,16 +61,12 @@
     grid = {
 	moveRel: function (xdiff, ydiff, options) {
 	    var pos = this.getCurrentCell().getBoxCoordinates();
-	    console.log("currently at: ");
-	    console.log(pos);
 	    this.moveToCoord({y: pos.y + ydiff, x: pos.x + xdiff}, options);
 	},
 	moveToCoord: function(pos, custom) {
        	    if (pos.x < 0 || pos.y < 0) {
 		return;
 	    }
-	    console.log("moving to: ");
-	    console.log(pos);
 	    this.moveToCell(this.getCellAt(pos), custom);
 	},
 	moveToCell: function(cell, custom) {

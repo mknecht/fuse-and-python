@@ -186,12 +186,10 @@ span.todo, a.todo {
 }
 
 
-.boxl-square {
-    .box-looking-at {
-	background-color: red;
-    }
+.box-square.box-looking-at {
+    background-color: red;
+}
 
-    .box-not-looking-at {
-	background-color: grey;
-    }
+.box-square.box-not-looking-at {
+    background-color: grey;
 }
