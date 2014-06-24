@@ -247,3 +247,38 @@ span.todo, a.todo {
 #box-overview {
   border: solid 1px #eee8d5;
 }
+
+/* line 201, ../_sass/site.scss */
+.box-marker {
+  position: fixed;
+  width: 0;
+  height: 0;
+}
+
+/* line 208, ../_sass/site.scss */
+#box-top-marker {
+  border-bottom: 20px solid #eee8d5;
+  border-left: 60px solid transparent;
+  border-right: 60px solid transparent;
+}
+
+/* line 213, ../_sass/site.scss */
+#box-bottom-marker {
+  border-top: 20px solid #eee8d5;
+  border-left: 60px solid transparent;
+  border-right: 60px solid transparent;
+}
+
+/* line 218, ../_sass/site.scss */
+#box-left-marker {
+  border-right: 20px solid #eee8d5;
+  border-top: 60px solid transparent;
+  border-bottom: 60px solid transparent;
+}
+
+/* line 223, ../_sass/site.scss */
+#box-right-marker {
+  border-left: 20px solid #eee8d5;
+  border-top: 60px solid transparent;
+  border-bottom: 60px solid transparent;
+}

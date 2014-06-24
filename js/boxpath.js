@@ -24,13 +24,9 @@
 	return findHandler(e.keyCode)();
     }
 
-    function handleScrolling() {
-	overview.update();
-    };
-
-
     overview = {
 	init: function() {
+	    var that = this;
 	    function placeSquare(x, y, overviewDiv) {
 		($("<div></div>")
 		 .appendTo(overviewDiv)
@@ -66,6 +62,7 @@
 		    placeSquare(x + 1, y, overviewDiv);
 		});
 	    });
+	    $(document).scroll(	function() { overview.update(); } );
 	    this.update();
 	},
 	update: function() {
@@ -139,17 +136,17 @@
 	    return false;
 	},
 	handleArrowLeft: function() {
-	    if (this.getCurrentCell.length === 0) {
+	    if (this.getCurrentCell().length === 0) {
 		return true;
 	    }
-	    this.moveRel(+1, 0);
+	    this.moveRel(-1, 0);
 	    return false;
 	},
 	handleArrowRight: function() {
-	    if (this.getCurrentCell.length === 0) {
+	    if (this.getCurrentCell().length === 0) {
 		return true;
 	    }
-	    grid.moveRel(-1, 0);
+	    grid.moveRel(+1, 0);
 	    return false;
 	},
 	getCurrentCell: function() {
@@ -238,6 +235,73 @@
 	}
     };
 
+    markers = {
+	init: function() {
+	    function placeMarker(el_id, pos) {
+		var marker = (
+		    $('<div></div>')
+			.appendTo('body')
+			.attr('id', el_id)
+			.addClass('box-marker')
+			.css('top', pos.top)
+			.css('left', pos.left)
+		);
+	    }
+	    var hiddenDiv = $('<div id="box-top-marker" style="display:none"></div>').appendTo('body');
+	    var margin = 5;
+	    var width = 2 * parseInt(hiddenDiv.css('border-left-width'));
+	    var height = parseInt(hiddenDiv.css('border-bottom-width'));
+	    hiddenDiv.remove();
+	    
+	    placeMarker(
+		'box-top-marker',
+		{top: margin, left: ($w.width() - width) / 2}
+	    );
+	    placeMarker(
+		'box-bottom-marker',
+		{top: $w.height() - margin - height, left: ($w.width() - width) / 2}
+	    );
+	    placeMarker(
+		'box-left-marker',
+		{top: ($w.height() - width)/2, left: margin}
+	    );
+	    placeMarker(
+		'box-right-marker',
+		{top: ($w.height() - width)/2, left: $w.width() - height - margin}
+	    );
+	    $(document).scroll(	function() { markers.update(); } );
+	    this.update();
+	},
+	update: function() {
+	    function showOrHideMarker(el_id, condition) {
+		var el = $('#' + el_id);
+		(condition ? el.show : el.hide).apply(el);
+	    }
+	    function showMarkersForCell(cell) {
+		var co = cell.getBoxCoordinates();
+		showOrHideMarker(
+		    'box-top-marker',
+		    (cell !== undefined && co.y > 0 && !cell.hasContentAbove())
+		    || (cell === undefined && $w.scrollTop() > 0)
+		);
+		showOrHideMarker(
+		    'box-bottom-marker',
+		    (cell !== undefined && (grid.getCellAt({x: co.x, y: co.y + 1}).length > 0) && !cell.hasContentBelow())
+		    || (cell === undefined && $(document).height() > $w.scrollTop() + $w.height())
+		);
+		showOrHideMarker(
+		    'box-left-marker',
+		    (cell !== undefined && co.x > 0 && (grid.getCellAt({x: co.x - 1, y: co.y}).length > 0))
+		);
+		showOrHideMarker(
+		    'box-right-marker',
+		    (cell !== undefined && (grid.getCellAt({x: co.x + 1, y: co.y}).length > 0))
+		);
+	    }
+	    showMarkersForCell(grid.getCurrentCell());
+	}
+    }
+
     $(window).load(function() {
 	$.fn.isBeingLookedAt = function() {
 	    var rect = this.get()[0].getBoundingClientRect();
@@ -277,7 +341,7 @@
 	grid.layoutCells();
 	grid.replaceLinks();
 	overview.init();
+	markers.init();
 	$(document).keydown(handleKeydown);
-	$(document).scroll(handleScrolling);
     });
 })(jQuery, window);
