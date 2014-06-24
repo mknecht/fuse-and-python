@@ -210,16 +210,19 @@ span.todo, a.todo {
     border-left: 60px solid transparent; 
     border-right: 60px solid transparent; 
 }
+
 #box-bottom-marker {
     border-top: 20px solid $border; 
     border-left: 60px solid transparent; 
     border-right: 60px solid transparent; 
 }
+
 #box-left-marker {
     border-right: 20px solid $border;
     border-top: 60px solid transparent; 
     border-bottom: 60px solid transparent; 
 }
+
 #box-right-marker {
     border-left: 20px solid $border;
     border-top: 60px solid transparent; 

@@ -120,34 +120,32 @@
 	    });
 	},
 	handleArrowDown: function() {
-	    if (this.getCurrentCell().length === 0
-		|| this.getCurrentCell().hasContentBelow()) {
-		return true;
+	    if (this.isMoveDownPossible()) {
+		this.moveRel(0, 1);
+		return false;
 	    }
-	    this.moveRel(0, 1);
-	    return false;
+	    return true;
 	},
 	handleArrowUp: function() {
-	    if (this.getCurrentCell().length === 0 
-		|| this.getCurrentCell().hasContentAbove()) {
-		return true;
+	    if (this.isMoveUpPossible()) {
+		this.moveRel(0, -1, {bottom: true});
+		return false;
 	    }
-	    this.moveRel(0, -1, {bottom: true});
-	    return false;
+	    return true;
 	},
 	handleArrowLeft: function() {
-	    if (this.getCurrentCell().length === 0) {
-		return true;
+	    if (this.isMoveLeftPossible()) {
+		this.moveRel(-1, 0);
+		return false;
 	    }
-	    this.moveRel(-1, 0);
-	    return false;
+	    return true;
 	},
 	handleArrowRight: function() {
-	    if (this.getCurrentCell().length === 0) {
-		return true;
+	    if (this.isMoveRightPossible()) {
+		grid.moveRel(+1, 0);
+		return false;
 	    }
-	    grid.moveRel(+1, 0);
-	    return false;
+	    return true;
 	},
 	getCurrentCell: function() {
 	    return $('div.box-cell').filter(function(idx, el) {
@@ -232,6 +230,40 @@
 		    return true;
 		});
 	    });
+	},
+	isMoveUpPossible: function(cell) {
+	    var cell = cell === undefined ? grid.getCurrentCell() : cell;
+	    if (cell.length > 0) {
+		return cell.getBoxCoordinates().y > 0 && !cell.hasContentAbove();
+	    } else {
+		return $w.scrollTop() > 0;
+	    }
+	},
+	isMoveDownPossible: function(cell) {
+	    var cell = cell === undefined ? grid.getCurrentCell() : cell;
+	    if (cell.length > 0) {
+		var co = cell.getBoxCoordinates();
+		return ((grid.getCellAt({x: co.x, y: co.y + 1}).length > 0)
+			&& !cell.hasContentBelow());
+	    } else {
+		return $(document).height() > $w.scrollTop() + $w.height();
+	    }
+	},
+	isMoveLeftPossible: function(cell) {
+	    var cell = cell === undefined ? grid.getCurrentCell() : cell;
+	    if (cell.length > 0) {
+		var co = cell.getBoxCoordinates();
+		return (co.x > 0 && (grid.getCellAt({x: co.x - 1, y: co.y}).length > 0));
+	    }
+	    return false;
+	},
+	isMoveRightPossible: function(cell) {
+	    var cell = cell === undefined ? grid.getCurrentCell() : cell;
+	    if (cell.length > 0) {
+		var co = cell.getBoxCoordinates();
+		return (grid.getCellAt({x: co.x + 1, y: co.y}).length > 0);
+	    }
+	    return false;
 	}
     };
 
@@ -269,36 +301,18 @@
 		'box-right-marker',
 		{top: ($w.height() - width)/2, left: $w.width() - height - margin}
 	    );
-	    $(document).scroll(	function() { markers.update(); } );
-	    this.update();
+	    $(document).scroll(	function() { markers.update(grid.getCurrentCell()); } );
+	    this.update(grid.getCurrentCell());
 	},
-	update: function() {
+	update: function(cell) {
 	    function showOrHideMarker(el_id, condition) {
 		var el = $('#' + el_id);
 		(condition ? el.show : el.hide).apply(el);
 	    }
-	    function showMarkersForCell(cell) {
-		var co = cell.getBoxCoordinates();
-		showOrHideMarker(
-		    'box-top-marker',
-		    (cell !== undefined && co.y > 0 && !cell.hasContentAbove())
-		    || (cell === undefined && $w.scrollTop() > 0)
-		);
-		showOrHideMarker(
-		    'box-bottom-marker',
-		    (cell !== undefined && (grid.getCellAt({x: co.x, y: co.y + 1}).length > 0) && !cell.hasContentBelow())
-		    || (cell === undefined && $(document).height() > $w.scrollTop() + $w.height())
-		);
-		showOrHideMarker(
-		    'box-left-marker',
-		    (cell !== undefined && co.x > 0 && (grid.getCellAt({x: co.x - 1, y: co.y}).length > 0))
-		);
-		showOrHideMarker(
-		    'box-right-marker',
-		    (cell !== undefined && (grid.getCellAt({x: co.x + 1, y: co.y}).length > 0))
-		);
-	    }
-	    showMarkersForCell(grid.getCurrentCell());
+	    showOrHideMarker('box-top-marker', grid.isMoveUpPossible(cell));
+	    showOrHideMarker('box-bottom-marker', grid.isMoveDownPossible(cell));
+	    showOrHideMarker('box-left-marker', grid.isMoveLeftPossible(cell));
+	    showOrHideMarker('box-right-marker', grid.isMoveRightPossible(cell));
 	}
     }
 
