@@ -185,46 +185,10 @@ span.todo, a.todo {
     font-style: italic;
 }
 
-
-.box-overview {
-    background-color: $border;
-}
-
-.box-overview.box-looking-at {
-    background-color: $blue;
-}
-
-#box-overview {
-    border: solid 1px $border;
-}
-
-.box-marker {
-    position: fixed;
-    width: 0; 
-    height: 0; 
- 
-}
-
-#box-top-marker {
-    border-bottom: 20px solid $border; 
-    border-left: 60px solid transparent; 
-    border-right: 60px solid transparent; 
-}
-
-#box-bottom-marker {
-    border-top: 20px solid $border; 
-    border-left: 60px solid transparent; 
-    border-right: 60px solid transparent; 
-}
-
-#box-left-marker {
-    border-right: 20px solid $border;
-    border-top: 60px solid transparent; 
-    border-bottom: 60px solid transparent; 
-}
-
-#box-right-marker {
-    border-left: 20px solid $border;
-    border-top: 60px solid transparent; 
-    border-bottom: 60px solid transparent; 
-}
+#gridscrolling-overview { border-color: $border; }
+.gridscrolling-overview-square { background-color: $border; }
+.gridscrolling-looking-at { background-color: $blue; }
+#gridscrolling-top-marker { border-bottom-color: $border; }
+#gridscrolling-bottom-marker { border-top-color: $border; }
+#gridscrolling-left-marker { border-right-color: $border; }
+#gridscrolling-right-marker { border-left-color: $border; }

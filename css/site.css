@@ -233,52 +233,37 @@ span.todo, a.todo {
   font-style: italic;
 }
 
+/* line 188, ../_sass/site.scss */
+#gridscrolling-overview {
+  border-color: #eee8d5;
+}
+
 /* line 189, ../_sass/site.scss */
-.box-overview {
+.gridscrolling-overview-square {
   background-color: #eee8d5;
 }
 
-/* line 193, ../_sass/site.scss */
-.box-overview.box-looking-at {
+/* line 190, ../_sass/site.scss */
+.gridscrolling-looking-at {
   background-color: #268bd2;
 }
 
-/* line 197, ../_sass/site.scss */
-#box-overview {
-  border: solid 1px #eee8d5;
+/* line 191, ../_sass/site.scss */
+#gridscrolling-top-marker {
+  border-bottom-color: #eee8d5;
 }
 
-/* line 201, ../_sass/site.scss */
-.box-marker {
-  position: fixed;
-  width: 0;
-  height: 0;
+/* line 192, ../_sass/site.scss */
+#gridscrolling-bottom-marker {
+  border-top-color: #eee8d5;
 }
 
-/* line 208, ../_sass/site.scss */
-#box-top-marker {
-  border-bottom: 20px solid #eee8d5;
-  border-left: 60px solid transparent;
-  border-right: 60px solid transparent;
+/* line 193, ../_sass/site.scss */
+#gridscrolling-left-marker {
+  border-right-color: #eee8d5;
 }
 
-/* line 214, ../_sass/site.scss */
-#box-bottom-marker {
-  border-top: 20px solid #eee8d5;
-  border-left: 60px solid transparent;
-  border-right: 60px solid transparent;
-}
-
-/* line 220, ../_sass/site.scss */
-#box-left-marker {
-  border-right: 20px solid #eee8d5;
-  border-top: 60px solid transparent;
-  border-bottom: 60px solid transparent;
-}
-
-/* line 226, ../_sass/site.scss */
-#box-right-marker {
-  border-left: 20px solid #eee8d5;
-  border-top: 60px solid transparent;
-  border-bottom: 60px solid transparent;
+/* line 194, ../_sass/site.scss */
+#gridscrolling-right-marker {
+  border-left-color: #eee8d5;
 }
